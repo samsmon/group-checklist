@@ -87,6 +87,20 @@ const _projectMethods = {
     }
   },
 
+  goHome() {
+    this.mobileSidebarOpen = false;
+    if (window.location.hash && window.location.hash !== '#') {
+      window.location.hash = '';
+    } else {
+      this.activeProject = null;
+      this.items = [];
+      this.messages = [];
+      this.logsData = [];
+      this.disconnectWs();
+      if (this.user) this.loadProjects();
+    }
+  },
+
   toggleViewMode() {
     this.viewMode = this.viewMode === 'tree' ? 'flat' : 'tree';
     localStorage.setItem('viewMode', this.viewMode);

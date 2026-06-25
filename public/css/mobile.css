@@ -45,4 +45,12 @@
   .btn, .btn-primary, .btn-secondary { min-height: 40px; }
   .chat-input { font-size: 16px; } /* prevents iOS zoom */
   .modal { margin: 12px; max-height: calc(100vh - 24px); overflow-y: auto; }
+
+  /* Dashboard mobile */
+  .dash-inner { padding: 20px 16px 48px; }
+  .dash-welcome-title { font-size: 17px; }
+  .dash-stats-row { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 22px; }
+  .dash-stat { padding: 12px 14px; }
+  .dash-stat-num { font-size: 19px; }
+  .dash-cards { grid-template-columns: 1fr; }
 }
