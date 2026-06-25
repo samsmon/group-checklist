@@ -245,15 +245,6 @@
               <span x-text="activeProject.visibility === 'public' ? '🔒' : '🌐'"></span>
               <span x-text="activeProject.visibility === 'public' ? 'Make private' : 'Make public'"></span>
             </button>
-            <button x-show="viewMode === 'tree' && items.some(i => i.item_type === 'section')" class="project-menu-item"
-                    @click="showProjectMenu = false; toggleAllSections()">
-              <span x-text="items.filter(i => i.item_type === 'section').every(s => collapsedSections[s.id]) ? '▶' : '▼'"></span>
-              <span x-text="items.filter(i => i.item_type === 'section').every(s => collapsedSections[s.id]) ? 'Expand all' : 'Minimize all'"></span>
-            </button>
-            <button x-show="activeProject.is_owner" class="project-menu-item" :class="{ active: deleteMode }" @click="showProjectMenu = false; toggleDeleteMode()">
-              <span>☑</span>
-              <span x-text="deleteMode ? 'Cancel select' : 'Select items'"></span>
-            </button>
             <div x-show="activeProject.is_owner" class="project-menu-divider"></div>
             <button x-show="activeProject.is_owner" class="project-menu-item danger" @click="showProjectMenu = false; openDeleteProjectModal()">
               <span>🗑</span> Delete project
@@ -266,26 +257,67 @@
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             </button>
             <span class="mobile-topbar-title" x-text="activeProject.name"></span>
-            <div class="mobile-panel-tabs">
-              <button class="mobile-panel-tab" :class="{ active: mobilePanel === 'items' }" @click="mobilePanel = 'items'">Items</button>
-              <button class="mobile-panel-tab" :class="{ active: mobilePanel === 'chat' }" @click="mobilePanel = 'chat'">Chat</button>
-            </div>
-            <button class="btn-link" :class="{ 'pmenu-active': showProjectMenu || deleteMode }"
-                    @click="showProjectMenu = !showProjectMenu" title="Project settings"
-                    style="font-size:17px;padding:2px 8px;border-radius:6px;">⚙</button>
+
+            <!-- Normal mode -->
+            <template x-if="!deleteMode">
+              <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">
+                <button x-show="viewMode === 'tree' && items.some(i => i.item_type === 'section')"
+                        class="mobile-panel-tab"
+                        @click="toggleAllSections()"
+                        x-text="items.filter(i => i.item_type === 'section').every(s => collapsedSections[s.id]) ? '▶' : '▼'"
+                        title="Toggle all sections" style="padding:4px 8px;font-size:13px;"></button>
+                <div class="mobile-panel-tabs">
+                  <button class="mobile-panel-tab" :class="{ active: mobilePanel === 'items' }" @click="mobilePanel = 'items'">Items</button>
+                  <button class="mobile-panel-tab" :class="{ active: mobilePanel === 'chat' }" @click="mobilePanel = 'chat'">Chat</button>
+                </div>
+                <button class="btn-link" :class="{ 'pmenu-active': showProjectMenu }"
+                        @click="showProjectMenu = !showProjectMenu" title="Project settings"
+                        style="font-size:17px;padding:2px 8px;border-radius:6px;">⚙</button>
+              </div>
+            </template>
+
+            <!-- Delete mode -->
+            <template x-if="deleteMode">
+              <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                <button class="mobile-panel-tab" @click="allSelected() ? deselectAll() : selectAll()"
+                        x-text="allSelected() ? 'Deselect all' : 'Select all'" style="font-size:11px;padding:4px 8px;"></button>
+                <button class="mobile-panel-tab" @click="openModal('batchDelete')" :disabled="selectedCount() === 0"
+                        style="font-size:11px;padding:4px 8px;color:var(--danger);">Delete</button>
+                <button class="mobile-panel-tab" @click="toggleDeleteMode()" style="font-size:11px;padding:4px 8px;">✕</button>
+              </div>
+            </template>
           </div>
 
           <!-- Header -->
           <div class="main-header">
             <div class="main-header-top">
               <h1 class="main-title" x-text="activeProject.name"></h1>
-              <div class="header-actions">
+
+              <!-- Normal mode actions -->
+              <div x-show="!deleteMode" class="header-actions">
+                <button
+                  x-show="viewMode === 'tree' && items.some(i => i.item_type === 'section')"
+                  class="header-btn"
+                  @click="toggleAllSections()"
+                  x-text="items.filter(i => i.item_type === 'section').every(s => collapsedSections[s.id]) ? '▶ Expand all' : '▼ Minimize all'">
+                </button>
+                <button x-show="activeProject.is_owner" class="header-btn" @click="toggleDeleteMode()">☑ Select</button>
                 <span class="header-visibility-badge">
                   <span x-text="activeProject.visibility === 'public' ? '🌐 Public' : '🔒 Private'"></span>
                 </span>
-                <button class="header-btn" :class="{ active: showProjectMenu || deleteMode }" @click="showProjectMenu = !showProjectMenu">
+                <button class="header-btn" :class="{ active: showProjectMenu }" @click="showProjectMenu = !showProjectMenu">
                   ⚙ Project ▾
                 </button>
+              </div>
+
+              <!-- Delete mode actions -->
+              <div x-show="deleteMode" class="header-actions">
+                <button class="header-btn" @click="allSelected() ? deselectAll() : selectAll()"
+                        x-text="allSelected() ? '✕ Deselect all' : '✓ Select all'"></button>
+                <span x-text="selectedCount() + ' selected'" style="font-size:12px;color:var(--text-muted);"></span>
+                <button class="header-btn" @click="openModal('batchDelete')" :disabled="selectedCount() === 0"
+                        style="color:var(--danger);border-color:var(--danger);">Delete</button>
+                <button class="header-btn" @click="toggleDeleteMode()">✕ Cancel</button>
               </div>
             </div>
             <p class="progress-label" x-text="items.filter(i=>i.completion).length + ' of ' + items.filter(i=>i.item_type!=='section').length + ' done'"></p>
@@ -409,17 +441,6 @@
                 </div>
               </template>
 
-              <!-- Delete mode floating bar -->
-              <div x-show="deleteMode" class="delete-bar">
-                <button class="btn btn-secondary" style="padding:5px 10px;font-size:12px;" @click="allSelected() ? deselectAll() : selectAll()"
-                        x-text="allSelected() ? 'Deselect all' : 'Select all'"></button>
-                <span style="font-size:13px;" x-text="selectedCount() + ' selected'"></span>
-                <div style="display:flex;gap:6px;margin-left:auto;">
-                  <button class="btn btn-secondary" style="padding:5px 12px;" @click="toggleDeleteMode()">Cancel</button>
-                  <button class="btn btn-primary" style="padding:5px 12px;background:var(--danger);border-color:var(--danger);"
-                          @click="openModal('batchDelete')" :disabled="selectedCount() === 0">Delete</button>
-                </div>
-              </div>
 
               <template x-if="activeProject.is_owner && !deleteMode">
                 <div class="items-toolbar">
