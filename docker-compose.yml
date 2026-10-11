@@ -1,0 +1,14 @@
+services:
+  group-checklist:
+    build: .
+    container_name: group-checklist
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "3001:8080"
+    networks:
+      - default
+      - shared_net
+networks:
+  shared_net:
+    external: true
