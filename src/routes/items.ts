@@ -369,7 +369,7 @@ items.patch("/reorder", async (c) => {
     project_id: project.id,
     actor_name: actorName,
     action: "item.reordered",
-    payload: { order },
+    payload: { count: order.length }, // not the whole order: that made every move a multi-KB log row
     ip: c.get("ip"),
     user_agent: c.get("userAgent"),
   });

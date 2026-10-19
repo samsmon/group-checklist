@@ -56,7 +56,13 @@ bun run migrate
 
 ## Security notes
 
-- `JWT_SECRET` is mandatory; auth cookies are `HttpOnly`, `SameSite=Lax`, and `Secure` in production.
+- `JWT_SECRET` is mandatory and must be at least 32 characters; auth cookies are `HttpOnly`, `SameSite=Lax`,
+  and `Secure` in production.
+- Passwords use Bun's native bcrypt (cost 12), which runs off the main thread; a login for an unknown username
+  costs the same as a wrong password.
+- WebSockets: at most 20 per IP and 200 per project, 60 connection attempts per minute per IP, 1 KB message
+  limit. Sockets are authorised when they connect, so turning a project private disconnects everyone but the
+  owner (the browser shows a notice and does not retry).
 - Per-IP rate limits (in memory, reset on restart): login 10 / 15 min, register 5 / hour, writes 120 / min,
   chat and comments 20 / min, import 5 / min. Over the limit returns `429` with `Retry-After`.
 - The client IP comes from `cf-connecting-ip`, then `x-forwarded-for`, then `x-real-ip`. The proxy in front must

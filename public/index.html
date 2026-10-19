@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="/css/mobile.css" />
 </head>
 <body x-data="app" x-init="init()" x-cloak @keydown.escape.window="handleEscape()" @keydown.tab.window="trapFocus($event)">
-  <a class="skip-link" href="#" @click.prevent="skipToList()">Skip to the list</a>
+  <nav aria-label="Skip links"><a class="skip-link" href="#" @click.prevent="skipToList()">Skip to the list</a></nav>
 
   <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
     <defs>
@@ -149,7 +149,7 @@
     </aside>
 
     <!-- Main -->
-    <div class="main">
+    <main class="main">
 
       <!-- Guest landing -->
       <div class="empty-state" x-show="!activeProject && !user">
@@ -228,7 +228,7 @@
             <button class="mobile-home-btn" @click="goHome()" title="Home" aria-label="Go to dashboard">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             </button>
-            <span class="mobile-topbar-title" x-text="activeProject.name"></span>
+            <h1 class="mobile-topbar-title" x-text="activeProject.name"></h1>
             <span class="conn-status" x-show="wsOffline" role="status">offline</span>
 
             <!-- Normal mode -->
@@ -508,7 +508,7 @@
         </div>
       </template>
 
-    </div>
+    </main>
   </div>
 
   <!-- Modals, popups & toast — HTML injected from js/modals.js at alpine:init -->

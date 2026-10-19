@@ -46,6 +46,13 @@ export const chatLimiter = limiter({
   writesOnly: true,
 });
 
+// WebSocket connects: a client that is offline retries every few seconds, so leave headroom
+export const wsLimiter = limiter({
+  windowMs: MINUTE,
+  limit: 60,
+  message: "Too many connection attempts. Try again in a minute.",
+});
+
 export const importLimiter = limiter({
   windowMs: MINUTE,
   limit: 5,

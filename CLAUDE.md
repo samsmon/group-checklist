@@ -52,7 +52,10 @@ legacy/ec2/         # historical, do not edit
 
 - JWT sign/verify in `src/routes/auth.ts` using `crypto.subtle` HMAC-SHA256; payload is encoded as UTF-8
   (`btoa` alone throws on non-Latin1 usernames)
-- `JWT_SECRET` is required; the module throws at import time without it
+- `JWT_SECRET` is required and at least 32 characters; the module throws at import time otherwise
+- Passwords: `Bun.password` with bcrypt cost 12 (native, off the main thread; bcryptjs blocked the event loop for
+  ~300 ms per call). It verifies the `$2a$/$2b$` hashes bcryptjs made. Login verifies against a dummy hash when the
+  username does not exist so timing does not reveal accounts
 - Cookie: httpOnly, SameSite=Lax, 30 days, `Secure` in production
 - Cookie read: `c.req.header("cookie")` with regex parser — do NOT use `hono/cookie`
 - Login/register return raw `Response` (not `c.json()`) to set `Set-Cookie` header
@@ -93,6 +96,12 @@ this.items[idx] = { ...this.items[idx], pics: [...this.items[idx].pics, pic] };
 
 This applies to: completion, pics, and any other nested property.
 
+## Static files
+
+Served by `serveStatic` with gzip (`hono/compress`) and `ETag`; `/fonts` and `/vendor` are `immutable` for a year
+(never change a file under the same URL: rename it), everything else is `no-cache` so it revalidates (304).
+Compression and ETag skip `/api`, `/ws` and `/health`. Unknown `/api/*` paths return a JSON 404.
+
 ## Frontend notes
 
 - **Design: "Ledger"** (a printed worksheet). Serif (Newsreader) for words, mono (IBM Plex Mono) for facts such as
@@ -125,9 +134,13 @@ CASE WHEN ic.id IS NOT NULL THEN jsonb_build_object(...) END
 
 ## WebSocket
 
-- Room per project slug, `Map<string, Set<ServerWebSocket>>`
-- `broadcastToRoom(slug, payload)` in `src/ws.ts`
-- Client reconnects after 3s on close, heartbeat ping every 25s
+- `src/ws.ts`: room per project slug, `Map<slug, Map<socket, {userId, ip}>>`; `canJoin`/`joinRoom`/`leaveRoom`,
+  `broadcastToRoom(slug, payload)`, `closeRoom(slug, keepUserId, code, reason)`
+- Limits: 20 sockets per IP, 200 per room, 1 KB message size (`maxPayloadLength`), 60 connects/min/IP
+- Authorisation happens at connect only. When a project turns private (`PATCH`) or is deleted, `closeRoom` drops the
+  other sockets with code 4403/4404; the client shows a notice and does not reconnect on those codes
+- Client reconnects with backoff (3s, 6s ... 30s) on other closes, heartbeat ping every 25s; after a reconnect or
+  when the tab becomes visible again it reloads items and chat
 - Events: `item.created`, `item.updated`, `item.deleted`, `item.reordered`, `item.completed`, `item.uncompleted`,
   `item.pic_added`, `item.pic_removed`, `comment.added`, `comment.deleted`, `message.created`,
   `project.updated`, `project.deleted`

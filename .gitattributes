@@ -1,0 +1,8 @@
+# One line ending in the repository (LF), whatever the checkout platform
+* text=auto eol=lf
+
+# Never touch binaries
+*.woff2 binary
+*.png binary
+*.jpg binary
+*.ico binary
