@@ -4,6 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Group Checklist</title>
+  <meta name="theme-color" content="#f3efe4" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#16150f" media="(prefers-color-scheme: dark)" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="stylesheet" href="/css/vars.css" />
   <link rel="stylesheet" href="/css/layout.css" />
   <link rel="stylesheet" href="/css/items.css" />
@@ -81,9 +85,6 @@
       <!-- Mobile sidebar header -->
       <div class="mobile-sidebar-header" x-show="mobileSidebarOpen" style="display:flex;align-items:center;padding:12px 12px 8px;gap:8px;border-bottom:0.5px solid var(--border);flex-shrink:0;">
         <div class="sidebar-brand" style="flex:1;">Group Checklist</div>
-        <button class="btn-link" @click="toggleTheme()" :title="isDark ? 'Switch to light' : 'Switch to dark'" :aria-label="isDark ? 'Switch to light theme' : 'Switch to dark theme'" style="font-size:16px;">
-          <svg class="icon" aria-hidden="true"><use :href="isDark ? '#i-sun' : '#i-moon'"/></svg>
-        </button>
         <button class="btn-link" @click="mobileSidebarOpen = false" aria-label="Close menu" style="font-size:18px;padding:2px 4px;"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
       </div>
       <div class="sidebar-toggle-row">
@@ -91,9 +92,6 @@
           <span x-text="sidebarOpen ? '‹' : '›'"></span>
         </button>
         <div class="sidebar-brand" x-show="sidebarOpen">Group Checklist</div>
-        <button class="btn-link" @click="toggleTheme()" x-show="sidebarOpen" :title="isDark ? 'Switch to light' : 'Switch to dark'" :aria-label="isDark ? 'Switch to light theme' : 'Switch to dark theme'" style="font-size:16px;line-height:1;padding:3px;margin-left:auto;">
-          <svg class="icon" aria-hidden="true"><use :href="isDark ? '#i-sun' : '#i-moon'"/></svg>
-        </button>
       </div>
       <div class="sidebar-inner" x-show="sidebarOpen || mobileSidebarOpen">
 
@@ -131,6 +129,8 @@
       </div>
 
       <div class="sidebar-footer">
+        <button class="theme-link" @click="toggleTheme()" :aria-label="isDark ? 'Switch to the light theme' : 'Switch to the dark theme'"
+                x-text="isDark ? 'Light theme' : 'Dark theme'"></button>
         <template x-if="user">
           <div class="user-info">
             <div class="user-avatar" x-text="user.username[0].toUpperCase()"></div>

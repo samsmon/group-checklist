@@ -1,0 +1,13 @@
+{
+  "name": "Group Checklist",
+  "short_name": "Checklist",
+  "description": "Realtime checklists for a group",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f3efe4",
+  "theme_color": "#f3efe4",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
