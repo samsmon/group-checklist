@@ -14,7 +14,10 @@
 .sidebar.collapsed .sidebar-toggle-row { padding: 22px 8px 10px; }
 .sidebar-toggle-row .sidebar-brand { flex: 1; }
 .sidebar-brand { font-size: 21px; font-style: italic; letter-spacing: -0.01em; color: var(--ink); line-height: 1.2; }
-.sidebar-projects { flex: 1; overflow-y: auto; padding: 4px 16px 16px; }
+/* Layout lives in CSS, not an inline style: Alpine's x-show removes the inline display when it shows
+   an element, which used to collapse this column and leave the footer under the project list. */
+.sidebar-inner { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+.sidebar-projects { flex: 1; overflow-y: auto; padding: 4px 16px 16px; min-height: 0; }
 .sidebar-footer { padding: 14px 16px; border-top: 1px solid var(--rule); font: 12px/1.4 var(--mono); }
 .sidebar-section-label {
   font: 11px/1 var(--mono); text-transform: uppercase;

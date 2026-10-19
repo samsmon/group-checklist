@@ -92,7 +92,7 @@
           <svg class="icon" aria-hidden="true"><use :href="isDark ? '#i-sun' : '#i-moon'"/></svg>
         </button>
       </div>
-      <div class="sidebar-inner" x-show="sidebarOpen || mobileSidebarOpen" style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
+      <div class="sidebar-inner" x-show="sidebarOpen || mobileSidebarOpen">
 
       <div style="padding: 6px 16px 0;">
         <button class="btn-new-project" @click="openModal('createProject')" x-show="user">
