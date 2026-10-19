@@ -10,11 +10,9 @@
     "hono": "^4.7.0",
     "postgres": "^3.4.5",
     "nanoid": "^5.0.9",
-    "bcryptjs": "^2.4.3",
     "hono-rate-limiter": "^0.4.0"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
     "bun-types": "latest"
   }
 }

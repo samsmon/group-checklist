@@ -1,5 +1,4 @@
 import { Hono } from "hono";
-import bcrypt from "bcryptjs";
 import sql from "../db";
 import type { AppEnv, User } from "../types";
 import type { Context, Next } from "hono";
@@ -11,8 +10,22 @@ const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
   throw new Error("JWT_SECRET is not set");
 }
+if (JWT_SECRET.length < 32) {
+  throw new Error("JWT_SECRET must be at least 32 characters (try: openssl rand -hex 32)");
+}
 const COOKIE_NAME = "token";
 const COOKIE_TTL = 60 * 60 * 24 * 30; // 30 days
+
+// ---- Passwords ----
+// Bun's native bcrypt runs off the main thread (bcryptjs blocked the event loop for ~300 ms per
+// call) and verifies the $2a$/$2b$ hashes bcryptjs produced. bcrypt rather than the argon2
+// default: it needs almost no memory, so parallel logins cannot exhaust the container.
+
+const BCRYPT_COST = 12;
+const hashPassword = (password: string) => Bun.password.hash(password, { algorithm: "bcrypt", cost: BCRYPT_COST });
+const verifyPassword = (password: string, hash: string) => Bun.password.verify(password, hash);
+// Compared against when the username does not exist, so a miss costs the same as a wrong password
+const DUMMY_HASH = await hashPassword("timing-equalisation-only");
 
 // ---- JWT (HS256, Web Crypto — no external dep) ----
 
@@ -146,7 +159,7 @@ auth.post("/register", async (c) => {
   if (existing.length > 0)
     return c.json({ error: "username already taken" }, 409);
 
-  const hash = await bcrypt.hash(password, 12);
+  const hash = await hashPassword(password);
   const [user] = await sql<{ id: string; username: string }[]>`
     INSERT INTO users (username, password_hash)
     VALUES (${username}, ${hash})
@@ -175,10 +188,8 @@ auth.post("/login", async (c) => {
   const [user] = await sql<{ id: string; username: string; password_hash: string }[]>`
     SELECT id, username, password_hash FROM users WHERE username = ${username}
   `;
-  if (!user) return c.json({ error: "invalid credentials" }, 401);
-
-  const valid = await bcrypt.compare(password, user.password_hash);
-  if (!valid) return c.json({ error: "invalid credentials" }, 401);
+  const valid = await verifyPassword(password, user?.password_hash ?? DUMMY_HASH);
+  if (!user || !valid) return c.json({ error: "invalid credentials" }, 401);
 
   const token = await jwtSign({
     sub: user.id,
