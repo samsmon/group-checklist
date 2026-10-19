@@ -16,24 +16,27 @@
 .drag-handle:active { cursor: grabbing; }
 
 .checkbox {
-  width: 17px; height: 17px;
-  border: 0.5px solid var(--border-strong);
-  border-radius: 4px; flex-shrink: 0;
+  position: relative;
+  width: 20px; height: 20px; padding: 0;
+  border: 1.5px solid var(--border-strong);
+  background: var(--surface); color: #fff;
+  border-radius: 5px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
-  margin-top: 2px; cursor: pointer;
+  margin-top: 1px; cursor: pointer;
   transition: background 0.12s, border-color 0.12s;
 }
+/* Larger invisible hit area for touch */
+.checkbox::after { content: ""; position: absolute; inset: -8px; }
+.checkbox:hover { border-color: var(--accent); }
 .item.done .checkbox { background: var(--accent); border-color: var(--accent); }
-.checkmark { color: #fff; font-size: 10px; font-weight: 700; line-height: 1; }
+.checkmark { width: 13px; height: 13px; stroke-width: 3; }
 
 .item-body { flex: 1; min-width: 0; }
 .item-text { font-size: 14px; color: var(--text); line-height: 1.5; word-break: break-word; }
 .item.done .item-text { text-decoration: line-through; color: var(--text-muted); }
 .item-desc {
-  font-size: 12px; color: var(--text-sub); margin-top: 6px;
-  line-height: 1.6; padding: 7px 10px;
-  background: var(--bg); border-radius: 5px;
-  border-left: 2px solid var(--border-strong);
+  font-size: 13px; color: var(--text-sub); margin-top: 3px;
+  line-height: 1.55; white-space: pre-wrap; word-break: break-word;
 }
 
 .item-actions { display: flex; gap: 2px; flex-shrink: 0; }
@@ -112,18 +115,29 @@
 .comment-icon-btn:hover { opacity: 1; }
 
 /* ---- Tree child indent ---- */
-.tree-child {
-  margin-left: 20px;
-  border-left: 2px solid var(--border);
-  border-radius: 0 var(--radius) var(--radius) 0;
-}
+.tree-child { margin-left: 20px; }
 
 /* ---- Section collapse toggle ---- */
 .section-collapse-btn {
   background: none; border: none; cursor: pointer;
-  color: var(--text-muted); font-size: 11px; padding: 2px 5px;
+  color: var(--text-muted); font-size: 14px; padding: 3px 5px;
   border-radius: 4px; flex-shrink: 0; line-height: 1;
   transition: color 0.12s;
+}
+.icon.chevron { transition: transform 0.15s ease; }
+.icon.chevron.open { transform: rotate(90deg); }
+
+/* ---- Empty checklist ---- */
+.items-empty { padding: 28px 8px 8px; text-align: center; color: var(--text-muted); font-size: 14px; }
+.items-empty-sub { font-size: 12px; margin-top: 4px; }
+
+/* ---- Touch targets ---- */
+@media (pointer: coarse) {
+  .btn-icon { padding: 8px 10px; font-size: 14px; }
+  .section-collapse-btn { padding: 8px; }
+  .assign-btn, .pic-chip button { padding-top: 4px; padding-bottom: 4px; }
+  .comment-icon-btn { padding: 8px; }
+  .copy-desc-btn { opacity: 1; }
 }
 .section-collapse-btn:hover { color: var(--text); background: var(--item-hover-bg); }
 

@@ -36,6 +36,8 @@
 .btn-primary { background: var(--text); color: var(--bg); border-color: var(--text); }
 .btn-primary:hover { opacity: 0.85; }
 .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-danger { background: var(--danger); color: #fff; border-color: var(--danger); }
+.btn-danger:hover { opacity: 0.88; }
 .btn-secondary { background: var(--surface); color: var(--text); }
 .btn-secondary:hover { background: var(--bg); }
 .btn-block { width: 100%; }
@@ -110,5 +112,5 @@
   font-size: 13px; z-index: 200;
   box-shadow: 0 4px 16px rgba(0,0,0,0.1);
 }
-.toast.success { border-left: 3px solid var(--accent); }
-.toast.error { border-left: 3px solid var(--danger); }
+.toast.success { background: var(--text); color: var(--bg); border-color: var(--text); }
+.toast.error { background: var(--danger); color: #fff; border-color: var(--danger); }

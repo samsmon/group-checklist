@@ -99,6 +99,9 @@ document.addEventListener('alpine:init', () => {
       this.applyTheme();
       this.$watch('sidebarOpen', (v) => localStorage.setItem('sidebarOpen', String(v)));
       this.$watch('items', () => { this.sectionMap = this._buildSectionMap(); });
+      this.$watch('activeProject', (p) => {
+        document.title = p ? `${p.name} · Group Checklist` : 'Group Checklist';
+      });
       try {
         this.user = await api('GET', '/api/auth/me');
       } catch {
@@ -128,6 +131,13 @@ document.addEventListener('alpine:init', () => {
 
     get taskItems() {
       return this.items.filter(i => i.item_type !== 'section');
+    },
+    get doneCount() {
+      return this.taskItems.filter(i => i.completion).length;
+    },
+    get progressPct() {
+      const total = this.taskItems.length;
+      return total ? Math.round(this.doneCount / total * 100) : 0;
     },
 
     // ---- Spread methods from separate files ----
