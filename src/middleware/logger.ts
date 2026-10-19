@@ -4,10 +4,10 @@ import sql from "../db";
 
 // Attaches ip + userAgent to context for use in route handlers
 export const requestMeta = createMiddleware<AppEnv>(async (c, next) => {
-  // fly-client-ip is set by Fly's proxy (nginx blanks it on EC2); otherwise use the
-  // first forwarded address, which nginx overwrites with the real client IP.
+  // cf-connecting-ip is set (and any client-sent copy replaced) by Cloudflare, which fronts
+  // the homelab. Without it, fall back to the proxy-forwarded address.
   const ip =
-    c.req.header("fly-client-ip") ||
+    c.req.header("cf-connecting-ip") ||
     c.req.header("x-forwarded-for")?.split(",")[0].trim() ||
     c.req.header("x-real-ip") ||
     "unknown";

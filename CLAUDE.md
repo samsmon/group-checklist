@@ -1,14 +1,15 @@
 # group-checklist
 
-Realtime multi-user checklist app. Bun + Hono + PostgreSQL (Neon) + Alpine.js.
-Deployed on Fly.io (app: `group-checklist`, region: `ams`).
+Realtime multi-user checklist app. Bun + Hono + PostgreSQL + Alpine.js.
+Runs on the homelab (Docker Compose, `personal-hosts`) at https://checklist.suryatmaja.dev.
+Deploy details: `docs/deploy-homelab.md`. The old EC2/Fly setup is in `legacy/ec2` and unused.
 
 ## Stack
 
-- **Runtime**: Bun
-- **Framework**: Hono v4.7.0
-- **DB**: Neon PostgreSQL via `postgres` npm driver, `ssl: "prefer"`
-- **Frontend**: Vanilla HTML + Alpine.js 3 + Vanilla JS (no build step)
+- **Runtime**: Bun (lockfile: `bun.lock`, installs use `--frozen-lockfile`)
+- **Framework**: Hono v4
+- **DB**: PostgreSQL via the `postgres` driver; `DB_SSL` = `disable` | `prefer` | `require`
+- **Frontend**: Vanilla HTML + Alpine.js 3 (vendored in `public/vendor`) + Vanilla JS, no build step
 - **Auth**: JWT HS256 via native `crypto.subtle` (NOT hono/jwt — incompatible with Bun)
 - **WS**: `createBunWebSocket` from `hono/bun`
 
@@ -16,44 +17,65 @@ Deployed on Fly.io (app: `group-checklist`, region: `ams`).
 
 ```
 src/
-  index.ts          # Entry point, WS handler, static serve
-  db.ts             # Postgres connection (ssl: "prefer")
+  index.ts          # Entry: middleware order, rate limits, security headers, WS upgrade, static serve
+  db.ts             # Postgres connection
   ws.ts             # rooms Map + broadcastToRoom()
   types.ts          # AppEnv, User types
   routes/
-    auth.ts         # Register, login, logout, /me + authMiddleware
-    projects.ts     # CRUD projects
-    items.ts        # CRUD items, PICs, completions, reorder
-    logs.ts         # Audit log with cursor pagination
+    auth.ts         # Register, login, logout, /me + authMiddleware, JWT helpers
+    projects.ts     # CRUD projects, mounts items/logs/messages routers
+    items.ts        # CRUD items, PICs, completions, comments, reorder, import, batch delete
+    messages.ts     # Project chat
+    logs.ts         # Audit log with cursor pagination (ip/user_agent only in admin level)
   middleware/
-    logger.ts       # requestMeta middleware + writeLog()
+    logger.ts       # requestMeta (client IP) + writeLog()
+    rateLimit.ts    # Per-IP limiters
   lib/
     access.ts       # getProject(), canAccess(), isOwner()
+    validate.ts     # readJson, cleanText, parseLimit, isUuid, BadRequest
 public/
-  index.html        # Alpine.js SPA, light/dark theme
-  app.js            # Alpine data, API calls, WS event handlers
-migrations/
-  001_init.sql      # Full schema
-Dockerfile
-fly.toml
+  index.html        # Alpine.js SPA, light/dark theme, SVG icon sprite
+  app.js            # Alpine data object
+  js/               # api, auth, projects, items, chat, ws, export, modals, ui
+  css/              # vars, layout, items, forms, panels, mobile
+  vendor/           # alpine-<version>.min.js (self-hosted)
+migrations/         # NNN_name.sql, applied in order by scripts/migrate.ts
+scripts/migrate.ts  # Runner; tracks applied files in schema_migrations
+Dockerfile, docker-compose.yml
+docs/deploy-homelab.md
+legacy/ec2/         # historical, do not edit
 ```
 
 ## Auth (CRITICAL)
 
 `hono/jwt` does NOT work in Bun — silently fails on verify. Auth is implemented manually:
 
-- JWT sign/verify in `src/routes/auth.ts` using `crypto.subtle` HMAC-SHA256
+- JWT sign/verify in `src/routes/auth.ts` using `crypto.subtle` HMAC-SHA256; payload is encoded as UTF-8
+  (`btoa` alone throws on non-Latin1 usernames)
+- `JWT_SECRET` is required; the module throws at import time without it
 - Cookie: httpOnly, SameSite=Lax, 30 days, `Secure` in production
 - Cookie read: `c.req.header("cookie")` with regex parser — do NOT use `hono/cookie`
 - Login/register return raw `Response` (not `c.json()`) to set `Set-Cookie` header
 - Frontend: `credentials: 'include'` on all fetch calls
+- Tokens are not revocable (stateless, 30 days)
+
+## Request handling rules
+
+- Read bodies with `readJson(c)` and text with `cleanText(value, max, field)`; both throw `BadRequest`, which the
+  global handler turns into a 400. Other errors return a generic 500 (details only in the server log).
+- Validate every id that reaches SQL with `isUuid` (or `itemInProject` for item sub-resources) so malformed ids
+  return 404/400 instead of a Postgres error.
+- Item sub-resources (completion, PICs, comments) must be scoped to the project in the URL, not just `item_id`.
+- `/ws/:slug` runs the same `canAccess` check as the REST API before upgrading.
+- Client IP: `cf-connecting-ip`, then `x-forwarded-for`, then `x-real-ip` (see `middleware/logger.ts`).
 
 ## Database
 
-Neon PostgreSQL. Migrations run manually via Neon SQL Editor (no migration tool).
-Schema in `migrations/001_init.sql`.
+PostgreSQL on the homelab (`shared-postgres`). Add schema changes as a new `migrations/NNN_name.sql`
+(additive and idempotent: `IF NOT EXISTS`), then run `bun scripts/migrate.ts`. Never edit an applied migration.
 
-Key tables: `users`, `projects`, `checklist_items`, `item_pics`, `item_completions`, `audit_logs`.
+Key tables: `users`, `projects`, `checklist_items` (`item_type` = task | section), `item_pics`,
+`item_completions`, `item_comments`, `project_messages`, `logs`.
 
 ## Alpine.js reactivity (CRITICAL)
 
@@ -70,6 +92,15 @@ this.items[idx] = { ...this.items[idx], pics: [...this.items[idx].pics, pic] };
 ```
 
 This applies to: completion, pics, and any other nested property.
+
+## Frontend notes
+
+- Icons are an inline SVG sprite at the top of `index.html`: `<svg class="icon"><use href="#i-name"/></svg>`.
+  No emoji icons.
+- CSP allows only same-origin scripts plus `unsafe-eval` (Alpine) and inline styles. Do not add third-party
+  script or style origins; vendor the file instead.
+- Input `maxlength` values mirror the server limits (title 200, description/notes/comments/chat 2000, names 100,
+  username 32, password 128).
 
 ## SQL gotchas
 
@@ -88,28 +119,25 @@ CASE WHEN ic.id IS NOT NULL THEN jsonb_build_object(...) END
 - Room per project slug, `Map<string, Set<ServerWebSocket>>`
 - `broadcastToRoom(slug, payload)` in `src/ws.ts`
 - Client reconnects after 3s on close, heartbeat ping every 25s
-- Events: `item.created`, `item.updated`, `item.deleted`, `item.reordered`, `item.completed`, `item.uncompleted`, `item.pic_added`, `item.pic_removed`, `project.updated`, `project.deleted`
-
-## Fly.io deploy
-
-Auto-deploy on git push (configured via Fly.io web dashboard).
-Env vars set in Fly.io dashboard: `DATABASE_URL`, `JWT_SECRET`, `NODE_ENV=production`, `PORT=8080`.
-
-No GitHub Actions needed — Fly.io handles CI/CD.
+- Events: `item.created`, `item.updated`, `item.deleted`, `item.reordered`, `item.completed`, `item.uncompleted`,
+  `item.pic_added`, `item.pic_removed`, `comment.added`, `comment.deleted`, `message.created`,
+  `project.updated`, `project.deleted`
 
 ## Development
 
 ```bash
 bun install
-bun run dev    # or: bun src/index.ts
+cp .env.example .env     # JWT_SECRET, DATABASE_URL, DB_SSL=disable, PORT=3000
+bun run migrate
+bun run dev
 ```
 
-No `.env` file in repo. Set env vars locally or use `.env` (gitignored).
+`.env` is gitignored. There is no test suite or CI yet.
 
 ## Known patterns
 
-- `getProject(slug)` returns project row or undefined — check before use
+- `getProject(slug)` returns project row or null — check before use
 - `canAccess(project, userId)` — true if public or owner
 - `isOwner(project, userId)` — true only if owner
 - `writeLog()` wraps in try/catch — log failure never crashes the request
-- Guest users: name stored in `localStorage.guestName`, passed as `actor_name` in request body
+- Guest users: name stored in `localStorage.guestName`, passed as `actor_name` in request body (not verified)
