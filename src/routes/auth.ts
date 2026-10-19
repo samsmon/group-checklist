@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import sql from "../db";
 import type { AppEnv, User } from "../types";
 import type { Context, Next } from "hono";
+import { readJson, hasControlChars } from "../lib/validate";
 
 const auth = new Hono<AppEnv>();
 
@@ -125,11 +126,17 @@ export async function authMiddleware(c: Context<AppEnv>, next: Next) {
 
 // POST /api/auth/register
 auth.post("/register", async (c) => {
-  const body = await c.req.json<{ username?: string; password?: string }>();
+  const body = await readJson<{ username?: string; password?: string }>(c);
   const { username = "", password = "" } = body;
 
+  if (typeof username !== "string" || typeof password !== "string")
+    return c.json({ error: "username and password must be strings" }, 400);
   if (!username || !password)
     return c.json({ error: "username and password required" }, 400);
+  if (hasControlChars(username))
+    return c.json({ error: "username contains invalid characters" }, 400);
+  if (password.length > 128)
+    return c.json({ error: "password must be at most 128 characters" }, 400);
   if (username.length < 3 || username.length > 32)
     return c.json({ error: "username must be 3-32 characters" }, 400);
   if (password.length < 8)
@@ -157,11 +164,13 @@ auth.post("/register", async (c) => {
 
 // POST /api/auth/login
 auth.post("/login", async (c) => {
-  const body = await c.req.json<{ username?: string; password?: string }>();
+  const body = await readJson<{ username?: string; password?: string }>(c);
   const { username = "", password = "" } = body;
 
-  if (!username || !password)
-    return c.json({ error: "username and password required" }, 400);
+  if (typeof username !== "string" || typeof password !== "string")
+    return c.json({ error: "username and password must be strings" }, 400);
+  if (!username || !password || username.length > 32 || password.length > 128)
+    return c.json({ error: "invalid credentials" }, 401);
 
   const [user] = await sql<{ id: string; username: string; password_hash: string }[]>`
     SELECT id, username, password_hash FROM users WHERE username = ${username}

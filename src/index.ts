@@ -1,6 +1,8 @@
 import { Hono } from "hono";
 import { serveStatic } from "hono/bun";
 import { logger } from "hono/logger";
+import { bodyLimit } from "hono/body-limit";
+import { BadRequest } from "./lib/validate";
 import { createBunWebSocket } from "hono/bun";
 import type { ServerWebSocket } from "bun";
 import { requestMeta } from "./middleware/logger";
@@ -21,9 +23,17 @@ app.use("*", requestMeta);
 
 // Global error handler
 app.onError((err, c) => {
+  if (err instanceof BadRequest) return c.json({ error: err.message }, 400);
+  // Details stay in the server log; clients get a generic message
   console.error(`[error] ${c.req.method} ${c.req.path}:`, err);
-  return c.json({ error: err.message || "Internal Server Error" }, 500);
+  return c.json({ error: "Internal Server Error" }, 500);
 });
+
+// Cap request bodies (the CSV/Markdown import is the largest legitimate payload)
+app.use(
+  "/api/*",
+  bodyLimit({ maxSize: 1024 * 1024, onError: (c) => c.json({ error: "payload too large" }, 413) })
+);
 
 // Health check — also pings the DB so Neon doesn't scale to zero
 app.get("/health", async (c) => {
@@ -32,7 +42,8 @@ app.get("/health", async (c) => {
     await sql`SELECT 1`;
     return c.json({ ok: true, db: "ok", ts: new Date().toISOString() });
   } catch (e: any) {
-    return c.json({ ok: false, db: e.message, ts: new Date().toISOString() }, 503);
+    console.error("[health] db check failed:", e.message);
+    return c.json({ ok: false, db: "error", ts: new Date().toISOString() }, 503);
   }
 });
 

@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import sql from "../db";
 import { getProject, canAccess } from "../lib/access";
 import { broadcastToRoom } from "../ws";
+import { readJson, cleanText, parseLimit } from "../lib/validate";
 import type { AppEnv } from "../types";
 
 const messages = new Hono<AppEnv>();
@@ -15,7 +16,7 @@ messages.get("/", async (c) => {
   if (!project) return c.json({ error: "not found" }, 404);
   if (!canAccess(project, user?.id)) return c.json({ error: "access denied" }, 403);
 
-  const limit = Math.min(parseInt(c.req.query("limit") ?? "50", 10), 200);
+  const limit = parseLimit(c.req.query("limit"), 50, 200);
 
   // Fetch latest N, then reverse so oldest is first (chat order)
   const rows = await sql`
@@ -41,11 +42,11 @@ messages.post("/", async (c) => {
   if (!project) return c.json({ error: "not found" }, 404);
   if (!canAccess(project, user?.id)) return c.json({ error: "access denied" }, 403);
 
-  const body = await c.req.json<{ body?: string; sender_name?: string }>();
-  const msgBody = body.body?.trim() ?? "";
+  const body = await readJson<{ body?: string; sender_name?: string }>(c);
+  const msgBody = cleanText(body.body, 2000, "body");
   if (!msgBody) return c.json({ error: "body is required" }, 400);
 
-  const senderName = user?.username ?? body.sender_name?.trim() ?? "";
+  const senderName = user?.username ?? cleanText(body.sender_name, 100, "sender_name");
   if (!senderName) return c.json({ error: "sender_name is required for guests" }, 400);
 
   const [msg] = await sql`

@@ -8,6 +8,7 @@ import { getProject, canAccess, isOwner } from "../lib/access";
 import itemsRouter from "./items";
 import logsRouter from "./logs";
 import messagesRouter from "./messages";
+import { readJson, cleanText } from "../lib/validate";
 import type { AppEnv } from "../types";
 
 const nanoid = customAlphabet("abcdefghijklmnopqrstuvwxyz0123456789", 10);
@@ -52,10 +53,11 @@ projects.post("/", async (c) => {
   const user = c.get("user");
   if (!user) return c.json({ error: "not authenticated" }, 401);
 
-  const body = await c.req.json<{ name?: string; visibility?: "public" | "private" }>();
-  const { name = "", visibility = "private" } = body;
+  const body = await readJson<{ name?: string; visibility?: "public" | "private" }>(c);
+  const { visibility = "private" } = body;
+  const name = cleanText(body.name, 100, "name");
 
-  if (!name.trim()) return c.json({ error: "name is required" }, 400);
+  if (!name) return c.json({ error: "name is required" }, 400);
   if (!["public", "private"].includes(visibility)) {
     return c.json({ error: "visibility must be public or private" }, 400);
   }
@@ -126,11 +128,12 @@ projects.patch("/:slug", async (c) => {
   if (!project) return c.json({ error: "not found" }, 404);
   if (!isOwner(project, user.id)) return c.json({ error: "owner only" }, 403);
 
-  const body = await c.req.json<{ name?: string; visibility?: "public" | "private" }>();
+  const body = await readJson<{ name?: string; visibility?: "public" | "private" }>(c);
   const updates: Record<string, string> = {};
   const old: Record<string, string> = {};
 
-  if (body.name?.trim()) { old.name = project.name; updates.name = body.name.trim(); }
+  const newName = cleanText(body.name, 100, "name");
+  if (newName) { old.name = project.name; updates.name = newName; }
   if (body.visibility) {
     if (!["public", "private"].includes(body.visibility)) {
       return c.json({ error: "visibility must be public or private" }, 400);
