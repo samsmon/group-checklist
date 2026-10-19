@@ -3,19 +3,25 @@ import sql from "../db";
 import { writeLog } from "../middleware/logger";
 import { broadcastToRoom } from "../ws";
 import { getProject, canAccess, isOwner } from "../lib/access";
+import { UUID_RE, isUuid, readJson, cleanText } from "../lib/validate";
 import type { AppEnv } from "../types";
 
 const items = new Hono<AppEnv>();
+
+const MAX_TITLE = 200;
+const MAX_TEXT = 2000;
+const MAX_NAME = 100;
+const MAX_IMPORT_ITEMS = 1000;
+const MAX_BATCH_IDS = 500;
+const MAX_REORDER = 2000;
 
 // Resolve actor name: authenticated user takes priority, else body.actor_name
 function resolveActor(
   user: { username: string } | null,
   body: { actor_name?: string }
 ): string {
-  return user?.username ?? body.actor_name?.trim() ?? "anonymous";
+  return user?.username ?? (cleanText(body.actor_name, MAX_NAME, "actor_name") || "anonymous");
 }
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // True only when the item exists inside this project (also rejects malformed UUIDs)
 async function itemInProject(itemId: string, projectId: string): Promise<boolean> {
@@ -95,17 +101,22 @@ items.post("/", async (c) => {
   if (!project) return c.json({ error: "not found" }, 404);
   if (!canAccess(project, user?.id)) return c.json({ error: "access denied" }, 403);
 
-  const body = await c.req.json<{
+  const body = await readJson<{
     title?: string;
     description?: string;
     display_order?: number;
     item_type?: string;
     actor_name?: string;
-  }>();
-  const { title = "", description, display_order, item_type } = body;
+  }>(c);
+  const { display_order, item_type } = body;
+  const title = cleanText(body.title, MAX_TITLE, "title");
+  const description = cleanText(body.description, MAX_TEXT, "description");
   const validType = item_type === 'section' ? 'section' : 'task';
 
-  if (!title.trim()) return c.json({ error: "title is required" }, 400);
+  if (!title) return c.json({ error: "title is required" }, 400);
+  if (display_order !== undefined && !Number.isSafeInteger(display_order)) {
+    return c.json({ error: "display_order must be an integer" }, 400);
+  }
 
   const actorName = resolveActor(user, body);
 
@@ -118,7 +129,7 @@ items.post("/", async (c) => {
 
   const [item] = await sql`
     INSERT INTO checklist_items (project_id, title, description, display_order, item_type)
-    VALUES (${project.id}, ${title.trim()}, ${description ?? null}, ${order}, ${validType})
+    VALUES (${project.id}, ${title}, ${description || null}, ${order}, ${validType})
     RETURNING id, title, description, display_order, item_type, created_at, updated_at
   `;
 
@@ -217,9 +228,10 @@ items.post("/import", async (c) => {
   if (!project) return c.json({ error: "not found" }, 404);
   if (!isOwner(project, user?.id)) return c.json({ error: "owner only" }, 403);
 
-  const body = await c.req.json<{ content?: string; filename?: string }>();
-  const raw = (body.content ?? "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-  const filename = (body.filename ?? "").toLowerCase();
+  const body = await readJson<{ content?: string; filename?: string }>(c);
+  if (typeof body.content !== "string") return c.json({ error: "content must be a string" }, 400);
+  const raw = body.content.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+  const filename = cleanText(body.filename, 255, "filename").toLowerCase();
 
   // Detect format: prefer extension, fall back to content sniffing
   const isMd = filename.endsWith(".md") || filename.endsWith(".markdown");
@@ -268,23 +280,36 @@ items.post("/import", async (c) => {
     if (parsed.length === 0) return c.json({ error: "No valid items found in the CSV." }, 400);
   }
 
-  // Get current max display_order
-  const [{ max_order }] = await sql<{ max_order: number }[]>`
-    SELECT COALESCE(MAX(display_order), -1) AS max_order
-    FROM checklist_items WHERE project_id = ${project.id}
-  `;
-
-  // Bulk insert
-  const created: any[] = [];
-  for (let i = 0; i < parsed.length; i++) {
-    const { type, title, description } = parsed[i];
-    const [item] = await sql`
-      INSERT INTO checklist_items (project_id, title, description, display_order, item_type)
-      VALUES (${project.id}, ${title}, ${description || null}, ${max_order + 1 + i}, ${type})
-      RETURNING id, title, description, display_order, item_type, created_at, updated_at
-    `;
-    created.push({ ...item, pics: [], completion: null });
+  if (parsed.length > MAX_IMPORT_ITEMS) {
+    return c.json({ error: `Too many items: ${parsed.length} (max ${MAX_IMPORT_ITEMS}).` }, 400);
   }
+  for (let i = 0; i < parsed.length; i++) {
+    const { title, description } = parsed[i];
+    if (title.length > MAX_TITLE || description.length > MAX_TEXT || /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/.test(title + description)) {
+      return c.json({
+        error: `Item ${i + 1}: title must be at most ${MAX_TITLE} and description at most ${MAX_TEXT} characters, without control characters.`,
+      }, 400);
+    }
+  }
+
+  // All-or-nothing: either every row is imported or none
+  const created = await sql.begin(async (tx) => {
+    const [{ max_order }] = await tx<{ max_order: number }[]>`
+      SELECT COALESCE(MAX(display_order), -1) AS max_order
+      FROM checklist_items WHERE project_id = ${project.id}
+    `;
+    const rows: any[] = [];
+    for (let i = 0; i < parsed.length; i++) {
+      const { type, title, description } = parsed[i];
+      const [item] = await tx`
+        INSERT INTO checklist_items (project_id, title, description, display_order, item_type)
+        VALUES (${project.id}, ${title}, ${description || null}, ${max_order + 1 + i}, ${type})
+        RETURNING id, title, description, display_order, item_type, created_at, updated_at
+      `;
+      rows.push({ ...item, pics: [], completion: null });
+    }
+    return rows;
+  });
 
   await writeLog({
     project_id: project.id,
@@ -311,14 +336,20 @@ items.patch("/reorder", async (c) => {
   if (!project) return c.json({ error: "not found" }, 404);
   if (!canAccess(project, user?.id)) return c.json({ error: "access denied" }, 403);
 
-  const body = await c.req.json<{
+  const body = await readJson<{
     order: { id: string; display_order: number }[];
     actor_name?: string;
-  }>();
+  }>(c);
   const { order = [] } = body;
 
   if (!Array.isArray(order) || order.length === 0) {
     return c.json({ error: "order array is required" }, 400);
+  }
+  if (order.length > MAX_REORDER) {
+    return c.json({ error: `order may have at most ${MAX_REORDER} entries` }, 400);
+  }
+  if (!order.every((o) => o && isUuid(o.id) && Number.isSafeInteger(o.display_order))) {
+    return c.json({ error: "each order entry needs a valid id and integer display_order" }, 400);
   }
 
   const actorName = resolveActor(user, body);
@@ -358,22 +389,33 @@ items.patch("/:id", async (c) => {
   if (!project) return c.json({ error: "not found" }, 404);
   if (!canAccess(project, user?.id)) return c.json({ error: "access denied" }, 403);
 
+  if (!isUuid(itemId)) return c.json({ error: "item not found" }, 404);
   const [item] = await sql`SELECT * FROM checklist_items WHERE id = ${itemId} AND project_id = ${project.id}`;
   if (!item) return c.json({ error: "item not found" }, 404);
 
-  const body = await c.req.json<{
+  const body = await readJson<{
     title?: string;
     description?: string;
     actor_name?: string;
-  }>();
+  }>(c);
   const actorName = resolveActor(user, body);
   const old = { title: item.title, description: item.description };
+
+  // A provided title must not be blank; an omitted one keeps the current value
+  let newTitle: string | null = null;
+  if (body.title !== undefined) {
+    newTitle = cleanText(body.title, MAX_TITLE, "title");
+    if (!newTitle) return c.json({ error: "title cannot be empty" }, 400);
+  }
+  const newDescription = body.description !== undefined
+    ? cleanText(body.description, MAX_TEXT, "description")
+    : null;
 
   const [updated] = await sql`
     UPDATE checklist_items
     SET
-      title       = COALESCE(${body.title?.trim() ?? null}, title),
-      description = COALESCE(${body.description ?? null}, description)
+      title       = COALESCE(${newTitle}, title),
+      description = COALESCE(${newDescription}, description)
     WHERE id = ${itemId}
     RETURNING id, title, description, display_order, item_type, created_at, updated_at
   `;
@@ -402,26 +444,33 @@ items.delete("/batch", async (c) => {
   if (!project) return c.json({ error: "not found" }, 404);
   if (!isOwner(project, user?.id)) return c.json({ error: "owner only" }, 403);
 
-  const body = await c.req.json<{ ids?: string[] }>();
+  const body = await readJson<{ ids?: string[] }>(c);
   const ids = body.ids ?? [];
   if (!Array.isArray(ids) || ids.length === 0) return c.json({ error: "ids required" }, 400);
+  if (ids.length > MAX_BATCH_IDS) return c.json({ error: `at most ${MAX_BATCH_IDS} ids per request` }, 400);
+  if (!ids.every(isUuid)) return c.json({ error: "ids must be valid UUIDs" }, 400);
 
-  await sql`DELETE FROM checklist_items WHERE id = ANY(${ids}::uuid[]) AND project_id = ${project.id}`;
+  // Only ids that really belonged to this project are reported and broadcast
+  const deleted = await sql<{ id: string }[]>`
+    DELETE FROM checklist_items
+    WHERE id = ANY(${ids}::uuid[]) AND project_id = ${project.id}
+    RETURNING id
+  `;
 
   await writeLog({
     project_id: project.id,
     actor_name: user?.username ?? "unknown",
     action: "item.deleted",
-    payload: { batch: true, count: ids.length },
+    payload: { batch: true, count: deleted.length },
     ip: c.get("ip"),
     user_agent: c.get("userAgent"),
   });
 
-  for (const id of ids) {
+  for (const { id } of deleted) {
     broadcastToRoom(slug, { event: "item.deleted", data: { id } });
   }
 
-  return c.json({ deleted: ids.length });
+  return c.json({ deleted: deleted.length });
 });
 
 // DELETE /:id — delete item
@@ -434,6 +483,7 @@ items.delete("/:id", async (c) => {
   if (!project) return c.json({ error: "not found" }, 404);
   if (!canAccess(project, user?.id)) return c.json({ error: "access denied" }, 403);
 
+  if (!isUuid(itemId)) return c.json({ error: "item not found" }, 404);
   const [item] = await sql`SELECT * FROM checklist_items WHERE id = ${itemId} AND project_id = ${project.id}`;
   if (!item) return c.json({ error: "item not found" }, 404);
 
@@ -466,18 +516,19 @@ items.post("/:id/pics", async (c) => {
   if (!project) return c.json({ error: "not found" }, 404);
   if (!canAccess(project, user?.id)) return c.json({ error: "access denied" }, 403);
 
+  if (!isUuid(itemId)) return c.json({ error: "item not found" }, 404);
   const [item] = await sql`SELECT id FROM checklist_items WHERE id = ${itemId} AND project_id = ${project.id}`;
   if (!item) return c.json({ error: "item not found" }, 404);
 
-  const body = await c.req.json<{ name?: string; actor_name?: string }>();
-  const { name = "" } = body;
-  if (!name.trim()) return c.json({ error: "name is required" }, 400);
+  const body = await readJson<{ name?: string; actor_name?: string }>(c);
+  const name = cleanText(body.name, MAX_NAME, "name");
+  if (!name) return c.json({ error: "name is required" }, 400);
 
   const actorName = resolveActor(user, body);
 
   const [pic] = await sql`
     INSERT INTO item_pics (item_id, name, assigned_by)
-    VALUES (${itemId}, ${name.trim()}, ${actorName})
+    VALUES (${itemId}, ${name}, ${actorName})
     RETURNING id, item_id, name, assigned_by, created_at
   `;
 
@@ -542,24 +593,26 @@ items.post("/:id/complete", async (c) => {
   if (!project) return c.json({ error: "not found" }, 404);
   if (!canAccess(project, user?.id)) return c.json({ error: "access denied" }, 403);
 
+  if (!isUuid(itemId)) return c.json({ error: "item not found" }, 404);
   const [item] = await sql`SELECT id FROM checklist_items WHERE id = ${itemId} AND project_id = ${project.id}`;
   if (!item) return c.json({ error: "item not found" }, 404);
 
-  const body = await c.req.json<{
+  const body = await readJson<{
     done_by_name?: string;
     notes?: string;
     actor_name?: string;
-  }>();
-  const { done_by_name = "", notes } = body;
+  }>(c);
+  const doneBy = cleanText(body.done_by_name, MAX_NAME, "done_by_name");
+  const notes = cleanText(body.notes, MAX_TEXT, "notes");
 
-  if (!done_by_name.trim()) return c.json({ error: "done_by_name is required" }, 400);
+  if (!doneBy) return c.json({ error: "done_by_name is required" }, 400);
 
   const actorName = resolveActor(user, body);
 
   // UPSERT — replace if already exists (idempotent re-complete)
   const [completion] = await sql`
     INSERT INTO item_completions (item_id, done_by_name, notes)
-    VALUES (${itemId}, ${done_by_name.trim()}, ${notes ?? null})
+    VALUES (${itemId}, ${doneBy}, ${notes || null})
     ON CONFLICT (item_id) DO UPDATE
       SET done_by_name = EXCLUDED.done_by_name,
           notes = EXCLUDED.notes,
@@ -686,8 +739,8 @@ items.post("/:id/comments", async (c) => {
 
   if (!(await itemInProject(itemId, project.id))) return c.json({ error: "item not found" }, 404);
 
-  const body = await c.req.json<{ body?: string }>();
-  const text = body.body?.trim() ?? "";
+  const body = await readJson<{ body?: string }>(c);
+  const text = cleanText(body.body, MAX_TEXT, "body");
   if (!text) return c.json({ error: "body is required" }, 400);
 
   const [comment] = await sql`
