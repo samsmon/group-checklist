@@ -47,7 +47,6 @@ document.addEventListener('alpine:init', () => {
     editingItem: null,
     completeForm: { done_by_name: '', notes: '' },
     completingItem: null,
-    uncomletingItem: null,
     pendingCompleteItem: null,
     picForm: { name: '', actor_name: '' },
     picTargetItem: null,
@@ -58,6 +57,9 @@ document.addEventListener('alpine:init', () => {
     importError: '',
     importLoading: false,
     importTab: 'md',
+
+    quickAddText: '',
+    quickAddBusy: false,
 
     draggingIndex: null,
     dragOverIndex: null,
@@ -90,7 +92,8 @@ document.addEventListener('alpine:init', () => {
 
     ws: null,
     wsSlug: null,
-    toast: { visible: false, msg: '', type: 'success', _timer: null },
+    wsOffline: false,
+    toast: { visible: false, msg: '', type: 'success', action: null, _timer: null },
 
     // ---- Init ----
     async init() {
@@ -108,6 +111,12 @@ document.addEventListener('alpine:init', () => {
         this.user = null;
       }
       window.addEventListener('hashchange', () => this.handleRoute());
+      // Coming back to a tab that sat in the background: catch up and reconnect if needed
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState !== 'visible' || !this.activeProject) return;
+        this.refreshItems();
+        if (this.wsSlug && this.ws?.readyState !== WebSocket.OPEN) this.connectWs(this.wsSlug);
+      });
       await this.handleRoute();
       this.loading = false;
     },

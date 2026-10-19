@@ -88,6 +88,12 @@ button { font: inherit; color: inherit; }
 .chat-input:focus-visible,
 .comment-textarea:focus-visible { outline: none; }
 
+.skip-link {
+  position: absolute; left: -9999px; top: 8px; z-index: 300;
+  background: var(--ink); color: var(--paper); padding: 8px 14px; font: 12px var(--mono);
+}
+.skip-link:focus { left: 8px; }
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }

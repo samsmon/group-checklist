@@ -71,6 +71,8 @@
   font-size: 14px; color: var(--muted);
 }
 .btn-icon:hover { color: var(--ink); }
+.btn-icon:disabled { opacity: 0.25; cursor: default; }
+.btn-icon:disabled:hover { color: var(--muted); }
 .btn-icon.danger:hover { color: var(--danger); }
 
 /* PIC / done-by facts: a mono line under the title */
@@ -103,11 +105,13 @@
 
 /* ---- Add / import ---- */
 .items-toolbar { display: flex; gap: 22px; align-items: baseline; padding-top: 4px; border-bottom: 1px dashed var(--rule); }
-.btn-add-item {
-  flex: 1; text-align: left; padding: 14px 0; background: none; cursor: pointer;
-  border: 0; color: var(--muted); font-size: 16px;
+.quick-add-input {
+  flex: 1; min-width: 0; padding: 14px 0; background: none; color: var(--ink);
+  border: 0; border-radius: 0; font: 16px var(--serif); outline: none;
 }
-.btn-add-item:hover { color: var(--ink); }
+.quick-add-input::placeholder { color: var(--muted); }
+.quick-add-input:focus { box-shadow: 0 1px 0 var(--accent); }
+.quick-add-input:disabled { opacity: 0.5; }
 .btn-import {
   background: none; border: 0; padding: 0; font: 12px var(--mono); color: var(--accent); cursor: pointer;
   text-decoration: underline; text-underline-offset: 3px; white-space: nowrap;

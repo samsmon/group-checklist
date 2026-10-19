@@ -6,8 +6,8 @@ const _modalHTML = `
 
   <!-- Guest name -->
   <div class="modal-backdrop" x-show="modal === 'guestName'" @click.self="closeModal()">
-    <div class="modal" role="dialog" aria-modal="true">
-      <h3>Your display name</h3>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-1">
+      <h3 id="modal-title-1">Your display name</h3>
       <div class="modal-body">
         <div class="form-group">
           <label>Name (used for all actions)</label>
@@ -23,8 +23,8 @@ const _modalHTML = `
 
   <!-- Create project -->
   <div class="modal-backdrop" x-show="modal === 'createProject'" @click.self="closeModal()">
-    <div class="modal" role="dialog" aria-modal="true">
-      <h3>New project</h3>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-2">
+      <h3 id="modal-title-2">New project</h3>
       <div class="modal-body">
         <div class="form-group">
           <label>Name</label>
@@ -48,8 +48,8 @@ const _modalHTML = `
 
   <!-- Add item -->
   <div class="modal-backdrop" x-show="modal === 'addItem'" @click.self="closeModal()">
-    <div class="modal" role="dialog" aria-modal="true">
-      <h3>Add item</h3>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-3">
+      <h3 id="modal-title-3">Add item</h3>
       <div class="modal-body">
         <div class="form-group">
           <label>Type</label>
@@ -83,8 +83,8 @@ const _modalHTML = `
 
   <!-- Edit item -->
   <div class="modal-backdrop" x-show="modal === 'editItem'" @click.self="closeModal()">
-    <div class="modal" role="dialog" aria-modal="true">
-      <h3>Edit item</h3>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-4">
+      <h3 id="modal-title-4">Edit item</h3>
       <div class="modal-body">
         <div class="form-group">
           <label>Title</label>
@@ -111,8 +111,8 @@ const _modalHTML = `
 
   <!-- Mark complete -->
   <div class="modal-backdrop" x-show="modal === 'complete'" @click.self="closeModal()">
-    <div class="modal" role="dialog" aria-modal="true">
-      <h3>Mark as complete</h3>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-5">
+      <h3 id="modal-title-5" x-text="completingItem?.completion ? 'Edit completion' : 'Mark as complete'"></h3>
       <p class="modal-sub" x-text="completingItem?.title"></p>
       <div class="form-group">
         <label>Completed by</label>
@@ -125,15 +125,15 @@ const _modalHTML = `
       <p class="error-msg" x-show="modalError" x-text="modalError"></p>
       <div class="modal-actions">
         <button class="btn btn-secondary" @click="closeModal()">Cancel</button>
-        <button class="btn btn-primary" @click="submitComplete()">Complete</button>
+        <button class="btn btn-primary" @click="submitComplete()" x-text="completingItem?.completion ? 'Save' : 'Complete'"></button>
       </div>
     </div>
   </div>
 
   <!-- Add PIC -->
   <div class="modal-backdrop" x-show="modal === 'addPic'" @click.self="closeModal()">
-    <div class="modal" role="dialog" aria-modal="true">
-      <h3>Add PIC</h3>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-6">
+      <h3 id="modal-title-6">Add PIC</h3>
       <p class="modal-sub" x-text="picTargetItem?.title"></p>
       <div class="form-group">
         <label>Name</label>
@@ -155,8 +155,8 @@ const _modalHTML = `
 
   <!-- Non-owner assign (PIC / complete) -->
   <div class="modal-backdrop" x-show="modal === 'nonOwnerAssign'" @click.self="closeModal()">
-    <div class="modal" role="dialog" aria-modal="true">
-      <h3 x-text="nonOwnerAssignMode === 'pic' ? 'Who is responsible?' : (nonOwnerAssignItem?.completion ? 'Edit completion' : 'Who completed this?')"></h3>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-7">
+      <h3 id="modal-title-7" x-text="nonOwnerAssignMode === 'pic' ? 'Who is responsible?' : (nonOwnerAssignItem?.completion ? 'Edit completion' : 'Who completed this?')"></h3>
       <p class="modal-sub" x-text="nonOwnerAssignItem?.title?.slice(0, 60) + (nonOwnerAssignItem?.title?.length > 60 ? '...' : '')"></p>
       <div class="form-group">
         <label x-text="nonOwnerAssignMode === 'pic' ? 'Person in charge' : 'Your name'"></label>
@@ -170,25 +170,10 @@ const _modalHTML = `
     </div>
   </div>
 
-  <!-- Undo completion -->
-  <div class="modal-backdrop" x-show="modal === 'uncomplete'" @click.self="closeModal()">
-    <div class="modal" role="dialog" aria-modal="true">
-      <h3>Undo completion?</h3>
-      <p class="modal-sub" x-text="uncomletingItem?.title?.slice(0,80)"></p>
-      <p style="font-size:13px;color:var(--text-muted);margin-top:4px;" x-show="uncomletingItem?.completion">
-        Completed by <span style="font-weight:500;color:var(--text);" x-text="uncomletingItem?.completion?.done_by_name"></span>.
-      </p>
-      <div class="modal-actions">
-        <button class="btn btn-secondary" @click="closeModal()">Cancel</button>
-        <button class="btn btn-danger" @click="confirmUncomplete()">Undo</button>
-      </div>
-    </div>
-  </div>
-
   <!-- Import / Markdown -->
   <div class="modal-backdrop" x-show="modal === 'import'" @click.self="closeModal()">
-    <div class="modal" role="dialog" aria-modal="true" style="max-width:460px;">
-      <h3>Import checklist</h3>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-8" style="max-width:460px;">
+      <h3 id="modal-title-8">Import checklist</h3>
       <p class="modal-sub">Bulk-create tasks and sections from a file. Choose a format below.</p>
       <div class="modal-body">
         <div class="import-format-tabs">
@@ -235,8 +220,8 @@ const _modalHTML = `
 
   <!-- Auth modal (shown to guests while viewing a project) -->
   <div class="modal-backdrop" x-show="modal === 'auth'" @click.self="closeModal()">
-    <div class="modal" role="dialog" aria-modal="true" style="max-width:360px;">
-      <h3 x-text="authMode === 'login' ? 'Sign in' : 'Create account'"></h3>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-9" style="max-width:360px;">
+      <h3 id="modal-title-9" x-text="authMode === 'login' ? 'Sign in' : 'Create account'"></h3>
       <p class="modal-sub">Group Checklist</p>
       <div class="modal-body" style="padding-top:4px;">
         <div class="form-group">
@@ -261,8 +246,8 @@ const _modalHTML = `
 
   <!-- Delete project -->
   <div class="modal-backdrop" x-show="modal === 'deleteProject'" @click.self="closeModal()">
-    <div class="modal" role="dialog" aria-modal="true">
-      <h3>Delete project?</h3>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-10">
+      <h3 id="modal-title-10">Delete project?</h3>
       <p class="modal-sub" x-text="activeProject?.name"></p>
       <p style="font-size:13px;color:var(--text-muted);margin-top:4px;">All items, completions, and logs will be permanently deleted. This cannot be undone.</p>
       <div class="modal-actions">
@@ -274,8 +259,8 @@ const _modalHTML = `
 
   <!-- Delete item -->
   <div class="modal-backdrop" x-show="modal === 'deleteItem'" @click.self="closeModal()">
-    <div class="modal" role="dialog" aria-modal="true">
-      <h3>Delete item?</h3>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-11">
+      <h3 id="modal-title-11">Delete item?</h3>
       <p class="modal-sub" x-text="deleteItemTarget?.title?.slice(0,80)"></p>
       <p style="font-size:13px;color:var(--text-muted);margin-top:4px;">This cannot be undone.</p>
       <div class="modal-actions">
@@ -291,7 +276,7 @@ const _modalHTML = `
   <!-- Comment popup — :style uses object to avoid backtick nesting issues -->
   <div
     x-show="commentPopup.visible"
-    class="comment-popup"
+    class="comment-popup" role="dialog" aria-label="Comments"
     :style="{ top: commentPopup.top + 'px', left: commentPopup.left + 'px' }"
     @click.stop
   >
@@ -333,8 +318,8 @@ const _modalHTML = `
 
   <!-- Export -->
   <div class="modal-backdrop" x-show="modal === 'export'" @click.self="closeModal()">
-    <div class="modal" role="dialog" aria-modal="true" style="max-width:340px;">
-      <h3>Export checklist</h3>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-12" style="max-width:340px;">
+      <h3 id="modal-title-12">Export checklist</h3>
       <p class="modal-sub" x-text="activeProject?.name"></p>
       <div class="modal-body" style="display:flex;flex-direction:column;gap:10px;">
         <button class="export-format-btn" @click="exportChecklist('md')">
@@ -354,8 +339,8 @@ const _modalHTML = `
 
   <!-- Batch delete confirmation -->
   <div class="modal-backdrop" x-show="modal === 'batchDelete'" @click.self="closeModal()">
-    <div class="modal" role="dialog" aria-modal="true">
-      <h3>Delete selected items?</h3>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-13">
+      <h3 id="modal-title-13">Delete selected items?</h3>
       <p class="modal-sub" x-text="selectedCount() + ' item' + (selectedCount() !== 1 ? 's' : '') + ' will be permanently deleted.'"></p>
       <p style="font-size:13px;color:var(--text-muted);margin-top:4px;">This cannot be undone.</p>
       <div class="modal-actions">
@@ -366,6 +351,10 @@ const _modalHTML = `
   </div>
 
   <!-- Toast -->
-  <div class="toast" :class="toast.type" x-show="toast.visible" x-text="toast.msg"></div>
+  <div class="toast" :class="toast.type" x-show="toast.visible" role="status" aria-live="polite"
+       @mouseenter="pauseToast()" @mouseleave="resumeToast()" @focusin="pauseToast()" @focusout="resumeToast()">
+    <span x-text="toast.msg"></span>
+    <button type="button" class="toast-action" x-show="toast.action" x-text="toast.action?.label" @click="runToastAction()"></button>
+  </div>
 
 `;

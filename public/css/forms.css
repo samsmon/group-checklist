@@ -93,8 +93,17 @@
 
 /* ---- Toast ---- */
 .toast {
-  position: fixed; bottom: 20px; left: 20px; z-index: 200; max-width: min(420px, calc(100vw - 40px));
+  position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 200;
+  width: max-content; max-width: min(460px, calc(100vw - 40px));
   background: var(--ink); color: var(--paper); border: 1px solid var(--ink); border-radius: 0;
   padding: 10px 14px; font: 12px/1.5 var(--mono);
 }
 .toast.error { background: var(--danger); border-color: var(--danger); color: var(--paper); }
+.toast { display: flex; align-items: baseline; gap: 14px; }
+.toast[style*="display: none"] { display: none; }
+.toast-action {
+  background: none; border: 0; padding: 0; margin-left: auto; cursor: pointer; flex-shrink: 0;
+  font: 500 12px var(--mono); text-transform: uppercase; letter-spacing: 0.06em; color: inherit;
+  text-decoration: underline; text-underline-offset: 3px;
+}
+.toast-action:focus-visible { outline-color: var(--paper); }

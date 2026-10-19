@@ -111,6 +111,90 @@ const _itemMethods = {
       await api('PATCH', `/api/projects/${this.activeProject.slug}/items/reorder`, payload);
     } catch (e) {
       this.showToast('Reorder failed: ' + e.message, 'error');
+      this.refreshItems(); // drop the local move so the list matches the server
+    }
+  },
+
+  // Move an item one step up or down (touch screens cannot drag). A section moves with its tasks.
+  async moveItem(index, dir) {
+    const items = [...this.items];
+    const item = items[index];
+    if (!item) return;
+    const isSection = item.item_type === 'section';
+    const start = index;
+    let end = index + 1;
+    if (isSection) while (end < items.length && items[end].item_type !== 'section') end++;
+    const block = items.slice(start, end);
+
+    let target; // index in the shortened array where the block is re-inserted
+    if (dir < 0) {
+      if (start === 0) return;
+      let prev = start - 1;
+      if (isSection) while (prev > 0 && items[prev].item_type !== 'section') prev--;
+      target = prev;
+    } else {
+      if (end >= items.length) return;
+      let nextEnd = end + 1;
+      if (isSection) while (nextEnd < items.length && items[nextEnd].item_type !== 'section') nextEnd++;
+      target = start + (nextEnd - end);
+    }
+    items.splice(start, block.length);
+    items.splice(target, 0, ...block);
+    this.items = items.map((it, i) => ({ ...it, display_order: i }));
+    await this.saveOrder();
+  },
+
+  // Reload items and chat from the server (after a reconnect, or when a write failed)
+  async refreshItems() {
+    if (!this.activeProject) return;
+    try {
+      const project = await api('GET', `/api/projects/${this.activeProject.slug}`);
+      this.items = project.items || [];
+    } catch { /* keep what we have */ }
+  },
+
+  // ---- Quick add ----
+  _parseTaskLines(text) {
+    return text
+      .split(/\r?\n/)
+      .map((l) => l.replace(/^\s*(?:[-*•]\s*(?:\[[ xX]\]\s*)?|\d+[.)]\s+)/, '').trim())
+      .filter(Boolean);
+  },
+
+  quickAdd() {
+    const lines = this._parseTaskLines(this.quickAddText);
+    if (lines.length) return this.addTasks(lines);
+  },
+
+  onQuickPaste(event) {
+    const text = event.clipboardData?.getData('text') ?? '';
+    if (!/\r?\n/.test(text.trim())) return; // a single line pastes normally
+    event.preventDefault();
+    const lines = this._parseTaskLines(text);
+    if (lines.length) this.addTasks(lines);
+  },
+
+  async addTasks(lines) {
+    const MAX = 30;
+    const batch = lines.slice(0, MAX);
+    this.quickAddBusy = true;
+    let added = 0;
+    try {
+      for (const title of batch) {
+        const item = await api('POST', `/api/projects/${this.activeProject.slug}/items`, { title, item_type: 'task' });
+        if (!this.items.find((i) => i.id === item.id)) this.items.push(item);
+        added++;
+      }
+      this.quickAddText = '';
+      const extra = lines.length - batch.length;
+      this.showToast(extra > 0
+        ? `Added ${added} tasks. ${extra} more were left out (limit ${MAX} at a time).`
+        : `Added ${added} task${added !== 1 ? 's' : ''}.`);
+    } catch (e) {
+      this.showToast(added ? `Added ${added}, then stopped: ${e.message}` : e.message, 'error');
+    } finally {
+      this.quickAddBusy = false;
+      this.$nextTick(() => document.querySelector('.quick-add-input')?.focus());
     }
   },
 
@@ -156,7 +240,11 @@ const _itemMethods = {
   // ---- Completions ----
   openCompleteModal(item) {
     this.completingItem = item;
-    this.completeForm = { done_by_name: this.guestName || (this.user?.username ?? ''), notes: '' };
+    // Editing an existing completion keeps its values; a new one starts from the current name
+    this.completeForm = {
+      done_by_name: item.completion?.done_by_name || this.guestName || (this.user?.username ?? ''),
+      notes: item.completion?.notes || '',
+    };
     this.openModal('complete');
   },
 
@@ -181,23 +269,54 @@ const _itemMethods = {
     }
   },
 
-  openUncompleteModal(item) {
-    this.uncomletingItem = item;
-    this.openModal('uncomplete');
+  // Checking a box completes immediately; unchecking reopens. Both offer Undo in a toast.
+  quickToggle(item) {
+    if (item.completion) return this.quickUncomplete(item);
+    return this.handleNonOwnerCheck(item); // asks for a guest name first when needed, then completes
   },
 
-  async confirmUncomplete() {
-    const item = this.uncomletingItem;
-    if (!item) return;
+  _shortTitle(title) {
+    return title.length > 40 ? title.slice(0, 40) + '…' : title;
+  },
+
+  _setCompletion(itemId, completion) {
+    const idx = this.items.findIndex(i => i.id === itemId);
+    if (idx !== -1) this.items[idx] = { ...this.items[idx], completion };
+  },
+
+  async quickUncomplete(item) {
+    const previous = item.completion;
     try {
       await api('DELETE', `/api/projects/${this.activeProject.slug}/items/${item.id}/complete`);
-      const idx = this.items.findIndex(i => i.id === item.id);
-      if (idx !== -1) this.items[idx] = { ...this.items[idx], completion: null };
-      this.closeModal();
-      this.uncomletingItem = null;
+      this._setCompletion(item.id, null);
+      this.showToast(`Marked open: ${this._shortTitle(item.title)}`, 'success', {
+        label: 'Undo',
+        run: () => this.restoreCompletion(item.id, previous),
+      });
     } catch (e) {
       this.showToast(e.message, 'error');
-      this.closeModal();
+    }
+  },
+
+  async restoreCompletion(itemId, previous) {
+    try {
+      const completion = await api('POST', `/api/projects/${this.activeProject.slug}/items/${itemId}/complete`, {
+        done_by_name: previous.done_by_name,
+        notes: previous.notes || undefined,
+        ...(!this.user ? { actor_name: this.guestName || previous.done_by_name } : {}),
+      });
+      this._setCompletion(itemId, completion);
+    } catch (e) {
+      this.showToast(e.message, 'error');
+    }
+  },
+
+  async undoComplete(itemId) {
+    try {
+      await api('DELETE', `/api/projects/${this.activeProject.slug}/items/${itemId}/complete`);
+      this._setCompletion(itemId, null);
+    } catch (e) {
+      this.showToast(e.message, 'error');
     }
   },
 
@@ -218,8 +337,11 @@ const _itemMethods = {
         done_by_name: name,
         ...(!this.user ? { actor_name: name } : {}),
       });
-      const idx = this.items.findIndex(i => i.id === item.id);
-      if (idx !== -1) this.items[idx] = { ...this.items[idx], completion };
+      this._setCompletion(item.id, completion);
+      this.showToast(`Done: ${this._shortTitle(item.title)}`, 'success', {
+        label: 'Undo',
+        run: () => this.undoComplete(item.id),
+      });
     } catch (e) {
       this.showToast(e.message, 'error');
     }
@@ -239,12 +361,18 @@ const _itemMethods = {
     if (left + popW > vw - 10) left = vw - popW - 10;
     if (left < 10) left = 10;
 
+    this._popupReturn = btn;
     this.commentPopup = { visible: true, item, comments: [], loading: true, input: '', top, left };
     this.loadItemComments(item.id);
+    // Move focus into the popup: the comment box when signed in, otherwise its close button
+    this.$nextTick(() => document.querySelector('.comment-textarea, .comment-popup-header .btn-link')?.focus());
   },
 
   closeCommentPopup() {
+    const back = this._popupReturn;
+    this._popupReturn = null;
     this.commentPopup = { visible: false, item: null, comments: [], loading: false, input: '', top: 0, left: 0 };
+    if (back && document.body.contains(back)) this.$nextTick(() => back.focus());
   },
 
   async loadItemComments(itemId) {

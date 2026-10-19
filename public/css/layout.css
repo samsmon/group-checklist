@@ -24,12 +24,20 @@
   letter-spacing: 0.08em; color: var(--muted); padding: 18px 0 8px;
 }
 
-.btn-new-project {
-  background: none; border: 0; padding: 0; margin: 4px 0 0;
-  font: 12px var(--mono); color: var(--accent); cursor: pointer;
-  text-decoration: underline; text-underline-offset: 3px; text-align: left;
+/* The main call to action: a square outlined button, not a text link */
+.btn-new-project, .dash-new-btn, .btn-new-dash {
+  background: transparent; color: var(--ink); border: 1px solid var(--ink); border-radius: 0;
+  padding: 7px 14px; font: 500 12px var(--mono); text-transform: uppercase; letter-spacing: 0.06em;
+  cursor: pointer; text-decoration: none; white-space: nowrap;
 }
-.btn-new-project:hover { color: var(--ink); }
+.btn-new-project { margin: 4px 0 0; width: 100%; }
+.btn-new-project:hover, .dash-new-btn:hover, .btn-new-dash:hover { background: var(--ink); color: var(--paper); }
+
+.theme-link {
+  display: block; margin-bottom: 8px; padding: 0; background: none; border: 0; cursor: pointer;
+  font: 12px var(--mono); color: var(--muted); text-decoration: underline; text-underline-offset: 3px;
+}
+.theme-link:hover { color: var(--ink); }
 
 .sidebar-home-item {
   display: flex; align-items: center; gap: 8px; padding: 8px 0;
@@ -67,10 +75,7 @@
   background: none; border: none; cursor: pointer; color: var(--ink);
   display: flex; align-items: center; flex-shrink: 0; padding: 4px 6px;
 }
-.btn-new-dash {
-  background: none; border: 0; padding: 4px 0; font: 12px var(--mono); color: var(--accent);
-  text-decoration: underline; text-underline-offset: 3px; cursor: pointer; flex-shrink: 0;
-}
+.btn-new-dash { flex-shrink: 0; padding: 5px 10px; }
 
 /* ---- Dashboard ---- */
 .dashboard { flex: 1; overflow-y: auto; }
@@ -80,11 +85,6 @@
   border-bottom: 3px double var(--ink); padding-bottom: 12px;
 }
 .dash-section-hdr { display: flex; justify-content: flex-end; margin: 14px 0 0; }
-.dash-new-btn {
-  background: none; border: 0; padding: 0; font: 12px var(--mono); color: var(--accent);
-  text-decoration: underline; text-underline-offset: 3px; cursor: pointer;
-}
-.dash-new-btn:hover { color: var(--ink); }
 
 .dash-table { width: 100%; border-collapse: collapse; margin-top: 6px; }
 .dash-table th {
@@ -125,6 +125,7 @@
 .header-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .header-visibility-badge { font: 12px var(--mono); color: var(--muted); white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
 
+.conn-status { font: 12px var(--mono); color: var(--danger); white-space: nowrap; }
 .progress-label { font: 12px var(--mono); color: var(--muted); margin-bottom: 8px; }
 .progress-bar-wrap { height: 3px; background: var(--rule); }
 .progress-bar { height: 3px; background: var(--accent); transition: width 0.3s ease; }
