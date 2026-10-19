@@ -125,6 +125,7 @@
 .header-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .header-visibility-badge { font: 12px var(--mono); color: var(--muted); white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
 
+.conn-status { font: 12px var(--mono); color: var(--danger); white-space: nowrap; }
 .progress-label { font: 12px var(--mono); color: var(--muted); margin-bottom: 8px; }
 .progress-bar-wrap { height: 3px; background: var(--rule); }
 .progress-bar { height: 3px; background: var(--accent); transition: width 0.3s ease; }

@@ -92,6 +92,7 @@ document.addEventListener('alpine:init', () => {
 
     ws: null,
     wsSlug: null,
+    wsOffline: false,
     toast: { visible: false, msg: '', type: 'success', action: null, _timer: null },
 
     // ---- Init ----
@@ -110,6 +111,12 @@ document.addEventListener('alpine:init', () => {
         this.user = null;
       }
       window.addEventListener('hashchange', () => this.handleRoute());
+      // Coming back to a tab that sat in the background: catch up and reconnect if needed
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState !== 'visible' || !this.activeProject) return;
+        this.refreshItems();
+        if (this.wsSlug && this.ws?.readyState !== WebSocket.OPEN) this.connectWs(this.wsSlug);
+      });
       await this.handleRoute();
       this.loading = false;
     },

@@ -5,7 +5,7 @@ const _wsMethods = {
 
   connectWs(slug) {
     if (this.wsSlug === slug && this.ws?.readyState === WebSocket.OPEN) return;
-    this.disconnectWs();
+    this.disconnectWs(this.wsSlug !== slug); // keep the offline/dropped state while retrying the same room
     this.wsSlug = slug;
 
     const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -15,6 +15,15 @@ const _wsMethods = {
     ws.onopen = () => {
       console.log('[ws] connected:', slug);
       ws._ping = setInterval(() => { if (ws.readyState === WebSocket.OPEN) ws.send('ping'); }, 25000);
+      clearTimeout(this._offlineTimer);
+      this._offlineTimer = null;
+      this.wsOffline = false;
+      // Events sent while we were disconnected are gone: reload what the server has now
+      if (this._wsDropped) {
+        this._wsDropped = false;
+        this.refreshItems();
+        this.loadMessages();
+      }
     };
 
     ws.onmessage = (e) => {
@@ -28,6 +37,9 @@ const _wsMethods = {
     ws.onclose = () => {
       clearInterval(ws._ping);
       if (this.wsSlug === slug) {
+        this._wsDropped = true;
+        // Show "reconnecting" only if the drop lasts, so short blips do not flicker
+        if (!this._offlineTimer) this._offlineTimer = setTimeout(() => { this.wsOffline = true; }, 2000);
         setTimeout(() => { if (this.wsSlug === slug) this.connectWs(slug); }, 3000);
       }
     };
@@ -35,7 +47,13 @@ const _wsMethods = {
     ws.onerror = (e) => console.error('[ws] error:', e);
   },
 
-  disconnectWs() {
+  disconnectWs(reset = true) {
+    if (reset) {
+      clearTimeout(this._offlineTimer);
+      this._offlineTimer = null;
+      this._wsDropped = false;
+      this.wsOffline = false;
+    }
     if (this.ws) {
       clearInterval(this.ws._ping);
       this.wsSlug = null;
