@@ -7,10 +7,13 @@ import { requestMeta } from "./middleware/logger";
 import { rooms, broadcastToRoom } from "./ws";
 import authRoutes from "./routes/auth";
 import projectRoutes from "./routes/projects";
+import { authMiddleware } from "./routes/auth";
+import { getProject, canAccess } from "./lib/access";
+import type { AppEnv } from "./types";
 
 export { broadcastToRoom };
 
-const app = new Hono();
+const app = new Hono<AppEnv>();
 
 // Global middleware
 app.use("*", logger());
@@ -33,12 +36,6 @@ app.get("/health", async (c) => {
   }
 });
 
-// Temporary debug — remove after fixing auth
-app.get("/debug/cookie", (c) => {
-  const cookie = c.req.header("cookie");
-  return c.json({ cookie: cookie ?? null });
-});
-
 // API routes
 app.route("/api/auth", authRoutes);
 app.route("/api/projects", projectRoutes);
@@ -48,8 +45,16 @@ const { upgradeWebSocket, websocket } = createBunWebSocket<ServerWebSocket<unkno
 
 app.get(
   "/ws/:slug",
+  authMiddleware,
+  async (c, next) => {
+    // Same visibility rules as the REST API: private rooms are owner-only
+    const project = await getProject(c.req.param("slug") ?? "");
+    if (!project) return c.json({ error: "not found" }, 404);
+    if (!canAccess(project, c.get("user")?.id)) return c.json({ error: "access denied" }, 403);
+    await next();
+  },
   upgradeWebSocket((c) => {
-    const slug = c.req.param("slug");
+    const slug = c.req.param("slug") as string;
     return {
       onOpen(_evt, ws) {
         const raw = ws.raw as ServerWebSocket<unknown>;

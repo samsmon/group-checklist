@@ -15,6 +15,17 @@ function resolveActor(
   return user?.username ?? body.actor_name?.trim() ?? "anonymous";
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// True only when the item exists inside this project (also rejects malformed UUIDs)
+async function itemInProject(itemId: string, projectId: string): Promise<boolean> {
+  if (!UUID_RE.test(itemId)) return false;
+  const [row] = await sql`
+    SELECT 1 AS ok FROM checklist_items WHERE id = ${itemId} AND project_id = ${projectId}
+  `;
+  return !!row;
+}
+
 // Guard: fetch project and check access; return null + already-responded if denied
 async function guard(
   c: any,
@@ -496,6 +507,9 @@ items.delete("/:id/pics/:picId", async (c) => {
   if (!project) return c.json({ error: "not found" }, 404);
   if (!canAccess(project, user?.id)) return c.json({ error: "access denied" }, 403);
 
+  if (!UUID_RE.test(picId) || !(await itemInProject(itemId, project.id))) {
+    return c.json({ error: "pic not found" }, 404);
+  }
   const [pic] = await sql`SELECT * FROM item_pics WHERE id = ${picId} AND item_id = ${itemId}`;
   if (!pic) return c.json({ error: "pic not found" }, 404);
 
@@ -578,6 +592,9 @@ items.delete("/:id/complete", async (c) => {
   if (!project) return c.json({ error: "not found" }, 404);
   if (!canAccess(project, user?.id)) return c.json({ error: "access denied" }, 403);
 
+  if (!(await itemInProject(itemId, project.id))) {
+    return c.json({ error: "item is not completed" }, 404);
+  }
   const [completion] = await sql`SELECT * FROM item_completions WHERE item_id = ${itemId}`;
   if (!completion) return c.json({ error: "item is not completed" }, 404);
 
@@ -610,6 +627,8 @@ items.get("/:id/comments", async (c) => {
   if (!project) return c.json({ error: "not found" }, 404);
   if (!canAccess(project, user?.id)) return c.json({ error: "access denied" }, 403);
 
+  if (!(await itemInProject(itemId, project.id))) return c.json({ error: "item not found" }, 404);
+
   const rows = await sql`
     SELECT id, item_id, author_name, body, created_at
     FROM item_comments
@@ -632,6 +651,10 @@ items.delete("/:id/comments/:commentId", async (c) => {
   const project = await getProject(slug);
   if (!project) return c.json({ error: "not found" }, 404);
   if (!canAccess(project, user.id)) return c.json({ error: "access denied" }, 403);
+
+  if (!UUID_RE.test(commentId) || !(await itemInProject(itemId, project.id))) {
+    return c.json({ error: "comment not found" }, 404);
+  }
 
   const [comment] = await sql`
     SELECT id, author_id, created_at FROM item_comments
@@ -660,6 +683,8 @@ items.post("/:id/comments", async (c) => {
   const project = await getProject(slug);
   if (!project) return c.json({ error: "not found" }, 404);
   if (!canAccess(project, user.id)) return c.json({ error: "access denied" }, 403);
+
+  if (!(await itemInProject(itemId, project.id))) return c.json({ error: "item not found" }, 404);
 
   const body = await c.req.json<{ body?: string }>();
   const text = body.body?.trim() ?? "";
