@@ -11,7 +11,8 @@
   <link rel="stylesheet" href="/css/panels.css" />
   <link rel="stylesheet" href="/css/mobile.css" />
 </head>
-<body x-data="app" x-init="init()" x-cloak @keydown.escape.window="handleEscape()">
+<body x-data="app" x-init="init()" x-cloak @keydown.escape.window="handleEscape()" @keydown.tab.window="trapFocus($event)">
+  <a class="skip-link" href="#" @click.prevent="skipToList()">Skip to the list</a>
 
   <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
     <defs>

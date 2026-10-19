@@ -361,12 +361,18 @@ const _itemMethods = {
     if (left + popW > vw - 10) left = vw - popW - 10;
     if (left < 10) left = 10;
 
+    this._popupReturn = btn;
     this.commentPopup = { visible: true, item, comments: [], loading: true, input: '', top, left };
     this.loadItemComments(item.id);
+    // Move focus into the popup: the comment box when signed in, otherwise its close button
+    this.$nextTick(() => document.querySelector('.comment-textarea, .comment-popup-header .btn-link')?.focus());
   },
 
   closeCommentPopup() {
+    const back = this._popupReturn;
+    this._popupReturn = null;
     this.commentPopup = { visible: false, item: null, comments: [], loading: false, input: '', top: 0, left: 0 };
+    if (back && document.body.contains(back)) this.$nextTick(() => back.focus());
   },
 
   async loadItemComments(itemId) {

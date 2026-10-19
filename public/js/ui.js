@@ -35,6 +35,7 @@ const _uiMethods = {
   },
 
   openModal(name) {
+    this._returnFocus = document.activeElement; // restored when the dialog closes
     this.modal = name;
     this.modalError = '';
     if (name === 'guestName') this.guestNameInput = this.guestName;
@@ -51,6 +52,33 @@ const _uiMethods = {
   closeModal() {
     this.modal = null;
     this.modalError = '';
+    const back = this._returnFocus;
+    this._returnFocus = null;
+    if (back && document.body.contains(back)) this.$nextTick(() => back.focus());
+  },
+
+  // Keep Tab inside the open dialog (and pull focus in if it escaped)
+  trapFocus(e) {
+    if (!this.modal) return;
+    const backdrop = [...document.querySelectorAll('.modal-backdrop')].find((b) => getComputedStyle(b).display !== 'none');
+    const dialog = backdrop?.querySelector('.modal');
+    if (!dialog) return;
+    const focusable = [...dialog.querySelectorAll(
+      'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    )].filter((el) => el.getClientRects().length > 0);
+    if (!focusable.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (!dialog.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+    else if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+  },
+
+  skipToList() {
+    const el = document.querySelector('.items-wrap, .dash-inner');
+    if (!el) return;
+    el.setAttribute('tabindex', '-1');
+    el.focus();
   },
 
   // Escape closes the topmost layer: comment popup, project menu, then modal
