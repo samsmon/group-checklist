@@ -5,6 +5,7 @@ const _exportMethods = {
   exportChecklist(format) {
     const name = this.activeProject.name;
     const items = this.items;
+    const fileBase = name.replace(/[\\/:*?"<>|\u0000-\u001f]/g, '_').trim() || 'checklist';
 
     if (format === 'md') {
       const lines = [`# ${name}`, ''];
@@ -23,10 +24,13 @@ const _exportMethods = {
           if (pics) lines.push(`  PIC: ${pics}`);
         }
       }
-      this._downloadFile(lines.join('\n'), `${name}.md`, 'text/markdown');
+      this._downloadFile(lines.join('\n'), `${fileBase}.md`, 'text/markdown');
 
     } else {
-      const escape = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+      // Cells starting with = + - @ (or tab/CR) are executed as formulas by Excel and
+      // Sheets; a leading apostrophe makes them plain text.
+      const neutralize = (s) => (/^[=+\-@\t\r]/.test(s) ? `'${s}` : s);
+      const escape = (v) => `"${neutralize(String(v ?? '')).replace(/"/g, '""')}"`;
       const rows = [['type', 'title', 'description', 'status', 'done_by', 'done_at', 'pics']];
       for (const item of items) {
         rows.push([
@@ -42,7 +46,7 @@ const _exportMethods = {
         ]);
       }
       const csv = rows.map(r => r.map(escape).join(',')).join('\n');
-      this._downloadFile(csv, `${name}.csv`, 'text/csv');
+      this._downloadFile(csv, `${fileBase}.csv`, 'text/csv');
     }
 
     this.closeModal();
