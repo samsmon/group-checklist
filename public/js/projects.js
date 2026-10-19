@@ -70,20 +70,32 @@ const _projectMethods = {
     this.openModal('deleteProject');
   },
 
+  // Leave the open project and go back to the dashboard
+  _leaveProject() {
+    this.activeProject = null;
+    this.items = [];
+    this.messages = [];
+    this.logsData = [];
+    this.disconnectWs();
+    window.location.hash = '';
+  },
+
   async confirmDeleteProject() {
+    // The WebSocket "project.deleted" event can arrive before this request resolves and clear
+    // activeProject, so work from a local copy and always close the dialog.
+    const project = this.activeProject;
+    if (!project) { this.closeModal(); return; }
+    this._deletingSlug = project.slug; // lets the WebSocket handlers skip their own "deleted" notice
     try {
-      await api('DELETE', `/api/projects/${this.activeProject.slug}`);
-      this.projects = this.projects.filter(p => p.id !== this.activeProject.id);
-      this.activeProject = null;
-      this.items = [];
-      this.messages = [];
-      this.logsData = [];
-      this.disconnectWs();
-      window.location.hash = '';
-      this.closeModal();
+      await api('DELETE', `/api/projects/${project.slug}`);
+      this.projects = this.projects.filter(p => p.id !== project.id);
+      this._leaveProject();
       this.showToast('Project deleted.');
     } catch (e) {
       this.showToast(e.message, 'error');
+    } finally {
+      this._deletingSlug = null;
+      this.closeModal();
     }
   },
 
