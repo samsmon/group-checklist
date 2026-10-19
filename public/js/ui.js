@@ -81,10 +81,32 @@ const _uiMethods = {
     return sections.length > 0 && sections.every(s => this.collapsedSections[s.id]);
   },
 
-  showToast(msg, type = 'success') {
+  // `action` ({ label, run }) adds a button, e.g. Undo, and keeps the toast up longer.
+  showToast(msg, type = 'success', action = null) {
     if (this.toast._timer) clearTimeout(this.toast._timer);
-    this.toast = { visible: true, msg, type, _timer: null };
-    this.toast._timer = setTimeout(() => { this.toast.visible = false; }, 3000);
+    this.toast = { visible: true, msg, type, action, _timer: null };
+    this._armToast();
+  },
+
+  _armToast() {
+    if (this.toast._timer) clearTimeout(this.toast._timer);
+    const ms = this.toast.action ? 6000 : 3000;
+    this.toast._timer = setTimeout(() => { this.toast.visible = false; }, ms);
+  },
+
+  pauseToast() {
+    if (this.toast._timer) clearTimeout(this.toast._timer);
+  },
+
+  resumeToast() {
+    if (this.toast.visible) this._armToast();
+  },
+
+  runToastAction() {
+    const action = this.toast.action;
+    this.pauseToast();
+    this.toast.visible = false;
+    if (action) action.run();
   },
 
 };

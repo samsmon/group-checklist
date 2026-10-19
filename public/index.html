@@ -36,6 +36,8 @@
       <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></symbol>
       <symbol id="i-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></symbol>
       <symbol id="i-send" viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></symbol>
+      <symbol id="i-arrow-up" viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></symbol>
+      <symbol id="i-arrow-down" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></symbol>
       <symbol id="i-menu" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></symbol>
       <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></symbol>
     </defs>
@@ -365,7 +367,7 @@
                           x-show="!deleteMode"
                           :aria-checked="!!item.completion"
                           :aria-label="(item.completion ? 'Undo completion: ' : 'Mark as complete: ') + item.title"
-                          @click="item.completion ? openUncompleteModal(item) : (activeProject.is_owner ? openCompleteModal(item) : handleNonOwnerCheck(item))"
+                          @click="quickToggle(item)"
                           :title="item.completion ? 'Undo completion' : 'Mark as complete'"
                         >
                           <svg class="icon checkmark" x-show="item.completion" aria-hidden="true"><use href="#i-check"/></svg>
@@ -380,6 +382,8 @@
                         </div>
 
                         <div class="item-actions" x-show="activeProject.is_owner && !deleteMode">
+                          <button class="btn-icon" @click.stop="moveItem(index, -1)" :disabled="index === 0" title="Move up" aria-label="Move up"><svg class="icon" aria-hidden="true"><use href="#i-arrow-up"/></svg></button>
+                          <button class="btn-icon" @click.stop="moveItem(index, 1)" :disabled="index === items.length - 1" title="Move down" aria-label="Move down"><svg class="icon" aria-hidden="true"><use href="#i-arrow-down"/></svg></button>
                           <button class="btn-icon" @click.stop="openEditItemModal(item)" title="Edit" aria-label="Edit"><svg class="icon" aria-hidden="true"><use href="#i-edit"/></svg></button>
                           <button class="btn-icon danger" @click.stop="openDeleteItemModal(item)" title="Delete" aria-label="Delete"><svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg></button>
                         </div>
@@ -406,6 +410,10 @@
                           <template x-if="item.completion">
                             <span class="done-time" x-text="new Date(item.completion.completed_at).toLocaleDateString('en-GB',{day:'numeric',month:'short'}) + ' · ' + new Date(item.completion.completed_at).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})"></span>
                           </template>
+                          <template x-if="item.completion">
+                            <button class="assign-btn" @click.stop="activeProject.is_owner ? openCompleteModal(item) : openNonOwnerComplete(item)"
+                                    title="Edit who finished this, or add a note">edit</button>
+                          </template>
                           <template x-if="!item.completion">
                             <span class="done-empty">-</span>
                           </template>
@@ -426,7 +434,10 @@
 
               <template x-if="activeProject.is_owner && !deleteMode">
                 <div class="items-toolbar">
-                  <button class="btn-add-item" @click="openModal('addItem')">+ Add task or section</button>
+                  <input type="text" class="quick-add-input" x-model="quickAddText" maxlength="200"
+                         aria-label="Add a task" placeholder="Add a task. Paste several lines to add them all."
+                         :disabled="quickAddBusy" @keydown.enter.prevent="quickAdd()" @paste="onQuickPaste($event)" />
+                  <button class="btn-import" @click="openModal('addItem')" title="Add a section, or a task with a description">More options</button>
                   <button class="btn-import" @click="openModal('import')" title="Bulk import from Markdown or CSV"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg> Import</button>
                 </div>
               </template>

@@ -43,7 +43,7 @@
   .btn { min-height: 42px; }
   .chat-input, .form-group input, .form-group textarea, .form-group select { font-size: 16px; } /* prevents iOS zoom */
   .modal { padding: 22px; }
-  .toast { left: 12px; right: 12px; bottom: 12px; max-width: none; }
+  .toast { left: 12px; right: 12px; bottom: 12px; max-width: none; width: auto; transform: none; }
   .item-text { font-size: 18px; }
   .item-footer { padding-left: 32px; }
   .delete-bar { left: 12px; right: 12px; transform: none; justify-content: space-between; }

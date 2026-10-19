@@ -112,7 +112,7 @@ const _modalHTML = `
   <!-- Mark complete -->
   <div class="modal-backdrop" x-show="modal === 'complete'" @click.self="closeModal()">
     <div class="modal" role="dialog" aria-modal="true">
-      <h3>Mark as complete</h3>
+      <h3 x-text="completingItem?.completion ? 'Edit completion' : 'Mark as complete'"></h3>
       <p class="modal-sub" x-text="completingItem?.title"></p>
       <div class="form-group">
         <label>Completed by</label>
@@ -125,7 +125,7 @@ const _modalHTML = `
       <p class="error-msg" x-show="modalError" x-text="modalError"></p>
       <div class="modal-actions">
         <button class="btn btn-secondary" @click="closeModal()">Cancel</button>
-        <button class="btn btn-primary" @click="submitComplete()">Complete</button>
+        <button class="btn btn-primary" @click="submitComplete()" x-text="completingItem?.completion ? 'Save' : 'Complete'"></button>
       </div>
     </div>
   </div>
@@ -166,21 +166,6 @@ const _modalHTML = `
       <div class="modal-actions">
         <button class="btn btn-secondary" @click="closeModal()">Cancel</button>
         <button class="btn btn-primary" @click="submitNonOwnerAssign()">Save</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Undo completion -->
-  <div class="modal-backdrop" x-show="modal === 'uncomplete'" @click.self="closeModal()">
-    <div class="modal" role="dialog" aria-modal="true">
-      <h3>Undo completion?</h3>
-      <p class="modal-sub" x-text="uncomletingItem?.title?.slice(0,80)"></p>
-      <p style="font-size:13px;color:var(--text-muted);margin-top:4px;" x-show="uncomletingItem?.completion">
-        Completed by <span style="font-weight:500;color:var(--text);" x-text="uncomletingItem?.completion?.done_by_name"></span>.
-      </p>
-      <div class="modal-actions">
-        <button class="btn btn-secondary" @click="closeModal()">Cancel</button>
-        <button class="btn btn-danger" @click="confirmUncomplete()">Undo</button>
       </div>
     </div>
   </div>
@@ -366,6 +351,10 @@ const _modalHTML = `
   </div>
 
   <!-- Toast -->
-  <div class="toast" :class="toast.type" x-show="toast.visible" x-text="toast.msg"></div>
+  <div class="toast" :class="toast.type" x-show="toast.visible" role="status" aria-live="polite"
+       @mouseenter="pauseToast()" @mouseleave="resumeToast()" @focusin="pauseToast()" @focusout="resumeToast()">
+    <span x-text="toast.msg"></span>
+    <button type="button" class="toast-action" x-show="toast.action" x-text="toast.action?.label" @click="runToastAction()"></button>
+  </div>
 
 `;
