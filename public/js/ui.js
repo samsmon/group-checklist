@@ -61,6 +61,21 @@ const _uiMethods = {
     if (this.modal) this.closeModal();
   },
 
+  // "2 min ago", "Yesterday", "12 Oct": short and scannable for the dashboard
+  relTime(iso) {
+    if (!iso) return 'no activity';
+    const then = new Date(iso);
+    const mins = Math.floor((Date.now() - then.getTime()) / 60000);
+    if (mins < 1) return 'just now';
+    if (mins < 60) return mins + ' min ago';
+    const hours = Math.floor(mins / 60);
+    if (hours < 24) return hours + ' h ago';
+    const days = Math.floor(hours / 24);
+    if (days === 1) return 'Yesterday';
+    if (days < 7) return days + ' days ago';
+    return then.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  },
+
   allSectionsCollapsed() {
     const sections = this.items.filter(i => i.item_type === 'section');
     return sections.length > 0 && sections.every(s => this.collapsedSections[s.id]);
