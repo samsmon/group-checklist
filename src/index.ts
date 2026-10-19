@@ -3,6 +3,13 @@ import { serveStatic } from "hono/bun";
 import { logger } from "hono/logger";
 import { bodyLimit } from "hono/body-limit";
 import { BadRequest } from "./lib/validate";
+import {
+  loginLimiter,
+  registerLimiter,
+  writeLimiter,
+  chatLimiter,
+  importLimiter,
+} from "./middleware/rateLimit";
 import { createBunWebSocket } from "hono/bun";
 import type { ServerWebSocket } from "bun";
 import { requestMeta } from "./middleware/logger";
@@ -34,6 +41,14 @@ app.use(
   "/api/*",
   bodyLimit({ maxSize: 1024 * 1024, onError: (c) => c.json({ error: "payload too large" }, 413) })
 );
+
+// Rate limits (per client IP). requestMeta above has already set c.get("ip").
+app.use("/api/auth/login", loginLimiter);
+app.use("/api/auth/register", registerLimiter);
+app.use("/api/projects/*", writeLimiter);
+app.use("/api/projects/:slug/messages", chatLimiter);
+app.use("/api/projects/:slug/items/:id/comments", chatLimiter);
+app.use("/api/projects/:slug/items/import", importLimiter);
 
 // Health check — also pings the DB so Neon doesn't scale to zero
 app.get("/health", async (c) => {

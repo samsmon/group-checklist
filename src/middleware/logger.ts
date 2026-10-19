@@ -4,9 +4,12 @@ import sql from "../db";
 
 // Attaches ip + userAgent to context for use in route handlers
 export const requestMeta = createMiddleware<AppEnv>(async (c, next) => {
+  // fly-client-ip is set by Fly's proxy (nginx blanks it on EC2); otherwise use the
+  // first forwarded address, which nginx overwrites with the real client IP.
   const ip =
-    c.req.header("x-forwarded-for")?.split(",")[0].trim() ??
-    c.req.header("x-real-ip") ??
+    c.req.header("fly-client-ip") ||
+    c.req.header("x-forwarded-for")?.split(",")[0].trim() ||
+    c.req.header("x-real-ip") ||
     "unknown";
   const userAgent = c.req.header("user-agent") ?? "";
   c.set("ip", ip);
