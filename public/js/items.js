@@ -1,5 +1,9 @@
 'use strict';
 
+// Per-item guard for the checkbox: itemId -> { busy, at }. Kept outside the Alpine data so it is not reactive.
+const _toggleGuard = new Map();
+const TOGGLE_COOLDOWN_MS = 700;
+
 // Item-related Alpine methods — merged into the app data object in app.js
 const _itemMethods = {
 
@@ -271,9 +275,18 @@ const _itemMethods = {
   },
 
   // Checking a box completes immediately; unchecking reopens. Both offer Undo in a toast.
-  quickToggle(item) {
-    if (item.completion) return this.quickUncomplete(item);
-    return this.handleNonOwnerCheck(item); // asks for a guest name first when needed, then completes
+  // A second click on the same box while the first request is running, or within 700 ms of it, is
+  // ignored: a quick double click used to complete the item and immediately reopen it.
+  async quickToggle(item) {
+    const guard = _toggleGuard.get(item.id);
+    if (guard && (guard.busy || Date.now() - guard.at < TOGGLE_COOLDOWN_MS)) return;
+    _toggleGuard.set(item.id, { busy: true, at: Date.now() });
+    try {
+      if (item.completion) await this.quickUncomplete(item);
+      else await this.handleNonOwnerCheck(item); // asks for a guest name first when needed, then completes
+    } finally {
+      _toggleGuard.set(item.id, { busy: false, at: Date.now() });
+    }
   },
 
   _shortTitle(title) {
@@ -332,7 +345,7 @@ const _itemMethods = {
       this.openModal('guestName');
       return;
     }
-    this.directComplete(item);
+    return this.directComplete(item);
   },
 
   async directComplete(item) {
