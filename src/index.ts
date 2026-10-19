@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { serveStatic } from "hono/bun";
 import { logger } from "hono/logger";
 import { bodyLimit } from "hono/body-limit";
+import { secureHeaders } from "hono/secure-headers";
 import { BadRequest } from "./lib/validate";
 import {
   loginLimiter,
@@ -27,6 +28,29 @@ const app = new Hono<AppEnv>();
 // Global middleware
 app.use("*", logger());
 app.use("*", requestMeta);
+
+// Security headers. Alpine's standard build compiles expressions with Function(), hence
+// 'unsafe-eval'; the UI also uses inline style attributes. Everything else is same-origin.
+// HSTS is left to the edge (Cloudflare/Fly): includeSubDomains here would reach sibling hosts.
+app.use(
+  "*",
+  secureHeaders({
+    strictTransportSecurity: false,
+    contentSecurityPolicy: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-eval'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:"],
+      connectSrc: ["'self'", "ws:", "wss:"],
+      objectSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+      frameAncestors: ["'none'"],
+    },
+    xFrameOptions: "DENY",
+    referrerPolicy: "same-origin",
+  })
+);
 
 // Global error handler
 app.onError((err, c) => {
