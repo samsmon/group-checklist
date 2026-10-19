@@ -11,7 +11,35 @@
   <link rel="stylesheet" href="/css/panels.css" />
   <link rel="stylesheet" href="/css/mobile.css" />
 </head>
-<body x-data="app" x-init="init()" x-cloak>
+<body x-data="app" x-init="init()" x-cloak @keydown.escape.window="handleEscape()">
+
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <defs>
+      <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></symbol>
+      <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+      <symbol id="i-list" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></symbol>
+      <symbol id="i-tree" viewBox="0 0 24 24"><polyline points="3 8 7 12 3 16"/><line x1="21" y1="12" x2="11" y2="12"/><line x1="21" y1="6" x2="11" y2="6"/><line x1="21" y1="18" x2="11" y2="18"/></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+      <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></symbol>
+      <symbol id="i-trash" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></symbol>
+      <symbol id="i-edit" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></symbol>
+      <symbol id="i-x" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></symbol>
+      <symbol id="i-comment" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol>
+      <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></symbol>
+      <symbol id="i-moon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></symbol>
+      <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></symbol>
+      <symbol id="i-more" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></symbol>
+      <symbol id="i-chevron-down" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></symbol>
+      <symbol id="i-chevron-right" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></symbol>
+      <symbol id="i-select" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></symbol>
+      <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></symbol>
+      <symbol id="i-send" viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></symbol>
+      <symbol id="i-menu" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></symbol>
+      <symbol id="i-logout" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></symbol>
+    </defs>
+  </svg>
 
   <div class="loading-screen" x-show="loading">Loading...</div>
 
@@ -22,11 +50,11 @@
       <p class="auth-sub">Group Checklist</p>
       <div class="form-group">
         <label>Username</label>
-        <input type="text" x-model="authForm.username" @keyup.enter="submitAuth()" placeholder="username" autocomplete="username" />
+        <input type="text" x-model="authForm.username" maxlength="32" @keyup.enter="submitAuth()" placeholder="username" autocomplete="username" />
       </div>
       <div class="form-group">
         <label>Password</label>
-        <input type="password" x-model="authForm.password" @keyup.enter="submitAuth()" placeholder="••••••••" autocomplete="current-password" />
+        <input type="password" x-model="authForm.password" maxlength="128" @keyup.enter="submitAuth()" placeholder="••••••••" autocomplete="current-password" />
       </div>
       <p class="error-msg" x-show="authError" x-text="authError"></p>
       <button class="btn btn-primary btn-block" style="margin-top:8px" @click="submitAuth()" :disabled="authLoading">
@@ -50,18 +78,18 @@
       <!-- Mobile sidebar header -->
       <div class="mobile-sidebar-header" x-show="mobileSidebarOpen" style="display:flex;align-items:center;padding:12px 12px 8px;gap:8px;border-bottom:0.5px solid var(--border);flex-shrink:0;">
         <div class="sidebar-brand" style="flex:1;">Group Checklist</div>
-        <button class="btn-link" @click="toggleTheme()" :title="isDark ? 'Switch to light' : 'Switch to dark'" style="font-size:15px;">
-          <span x-text="isDark ? '☀' : '🌙'"></span>
+        <button class="btn-link" @click="toggleTheme()" :title="isDark ? 'Switch to light' : 'Switch to dark'" :aria-label="isDark ? 'Switch to light theme' : 'Switch to dark theme'" style="font-size:16px;">
+          <svg class="icon" aria-hidden="true"><use :href="isDark ? '#i-sun' : '#i-moon'"/></svg>
         </button>
-        <button class="btn-link" @click="mobileSidebarOpen = false" style="font-size:18px;padding:2px 4px;">✕</button>
+        <button class="btn-link" @click="mobileSidebarOpen = false" aria-label="Close menu" style="font-size:18px;padding:2px 4px;"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
       </div>
       <div class="sidebar-toggle-row">
         <button class="btn-link" @click="sidebarOpen = !sidebarOpen" :title="sidebarOpen ? 'Collapse' : 'Expand'" style="font-size:17px;flex-shrink:0;padding:0 2px;">
           <span x-text="sidebarOpen ? '‹' : '›'"></span>
         </button>
         <div class="sidebar-brand" x-show="sidebarOpen">Group Checklist</div>
-        <button class="btn-link" @click="toggleTheme()" x-show="sidebarOpen" :title="isDark ? 'Switch to light' : 'Switch to dark'" style="font-size:15px;line-height:1;padding:3px;margin-left:auto;">
-          <span x-text="isDark ? '☀' : '🌙'"></span>
+        <button class="btn-link" @click="toggleTheme()" x-show="sidebarOpen" :title="isDark ? 'Switch to light' : 'Switch to dark'" :aria-label="isDark ? 'Switch to light theme' : 'Switch to dark theme'" style="font-size:16px;line-height:1;padding:3px;margin-left:auto;">
+          <svg class="icon" aria-hidden="true"><use :href="isDark ? '#i-sun' : '#i-moon'"/></svg>
         </button>
       </div>
       <div class="sidebar-inner" x-show="sidebarOpen || mobileSidebarOpen" style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
@@ -104,7 +132,7 @@
           <div class="user-info">
             <div class="user-avatar" x-text="user.username[0].toUpperCase()"></div>
             <span class="user-name" x-text="user.username"></span>
-            <button class="btn-link" title="Sign out" @click="logout()">↪</button>
+            <button class="btn-link" title="Sign out" aria-label="Sign out" @click="logout()" style="font-size:15px;"><svg class="icon" aria-hidden="true"><use href="#i-logout"/></svg></button>
           </div>
         </template>
         <template x-if="!user">
@@ -127,7 +155,7 @@
 
       <!-- Dashboard mobile topbar (only visible on mobile, when no project open) -->
       <div class="mobile-topbar" x-show="!activeProject && !!user" style="justify-content:space-between;">
-        <button class="mobile-hamburger" @click="mobileSidebarOpen = true">☰</button>
+        <button class="mobile-hamburger" @click="mobileSidebarOpen = true" aria-label="Open menu"><svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg></button>
         <span class="mobile-topbar-title">Home</span>
         <button class="btn-new-dash" @click="openModal('createProject')">+ New</button>
       </div>
@@ -138,7 +166,7 @@
 
           <!-- Welcome header -->
           <div class="dash-welcome">
-            <div class="dash-welcome-title" x-text="'Hi, ' + user.username + ' 👋'"></div>
+            <div class="dash-welcome-title" x-text="'Hi, ' + (user?.username ?? '')"></div>
             <div class="dash-welcome-sub" x-text="new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })"></div>
           </div>
 
@@ -235,19 +263,19 @@
 
           <!-- Project settings dropdown (shared between mobile/desktop) -->
           <div x-show="showProjectMenu" class="project-menu-dropdown">
-            <button class="project-menu-item" @click="showProjectMenu = false; openModal('export')"><span>📤</span> Export</button>
-            <button class="project-menu-item" @click="showProjectMenu = false; copyLink()"><span>🔗</span> Copy link</button>
+            <button class="project-menu-item" @click="showProjectMenu = false; openModal('export')"><svg class="icon" aria-hidden="true"><use href="#i-upload"/></svg> Export</button>
+            <button class="project-menu-item" @click="showProjectMenu = false; copyLink()"><svg class="icon" aria-hidden="true"><use href="#i-link"/></svg> Copy link</button>
             <button class="project-menu-item" @click="showProjectMenu = false; toggleViewMode()">
-              <span x-text="viewMode === 'tree' ? '≡' : '🌲'"></span>
+              <svg class="icon" aria-hidden="true"><use :href="viewMode === 'tree' ? '#i-list' : '#i-tree'"/></svg>
               <span x-text="viewMode === 'tree' ? 'Flat view' : 'Tree view'"></span>
             </button>
             <button x-show="activeProject.is_owner" class="project-menu-item" @click="showProjectMenu = false; toggleVisibility()">
-              <span x-text="activeProject.visibility === 'public' ? '🔒' : '🌐'"></span>
+              <svg class="icon" aria-hidden="true"><use :href="activeProject.visibility === 'public' ? '#i-lock' : '#i-globe'"/></svg>
               <span x-text="activeProject.visibility === 'public' ? 'Make private' : 'Make public'"></span>
             </button>
             <div x-show="activeProject.is_owner" class="project-menu-divider"></div>
             <button x-show="activeProject.is_owner" class="project-menu-item danger" @click="showProjectMenu = false; openDeleteProjectModal()">
-              <span>🗑</span> Delete project
+              <svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg> Delete project
             </button>
           </div>
 
@@ -264,15 +292,18 @@
                 <button x-show="viewMode === 'tree' && items.some(i => i.item_type === 'section')"
                         class="mobile-panel-tab"
                         @click="toggleAllSections()"
-                        x-text="items.filter(i => i.item_type === 'section').every(s => collapsedSections[s.id]) ? '▶' : '▼'"
-                        title="Toggle all sections" style="padding:4px 8px;font-size:13px;"></button>
+                        :title="allSectionsCollapsed() ? 'Expand all sections' : 'Collapse all sections'"
+                        :aria-label="allSectionsCollapsed() ? 'Expand all sections' : 'Collapse all sections'"
+                        style="padding:4px 8px;font-size:13px;">
+                  <svg class="icon" aria-hidden="true"><use :href="allSectionsCollapsed() ? '#i-chevron-right' : '#i-chevron-down'"/></svg>
+                </button>
                 <div class="mobile-panel-tabs">
                   <button class="mobile-panel-tab" :class="{ active: mobilePanel === 'items' }" @click="mobilePanel = 'items'">Items</button>
                   <button class="mobile-panel-tab" :class="{ active: mobilePanel === 'chat' }" @click="mobilePanel = 'chat'">Chat</button>
                 </div>
                 <button class="btn-link" :class="{ 'pmenu-active': showProjectMenu }"
-                        @click="showProjectMenu = !showProjectMenu" title="Project settings"
-                        style="font-size:17px;padding:2px 8px;border-radius:6px;">⚙</button>
+                        @click="showProjectMenu = !showProjectMenu" title="Project menu" aria-label="Project menu"
+                        style="font-size:17px;padding:4px 8px;border-radius:6px;"><svg class="icon" aria-hidden="true"><use href="#i-more"/></svg></button>
               </div>
             </template>
 
@@ -283,7 +314,7 @@
                         x-text="allSelected() ? 'Deselect all' : 'Select all'" style="font-size:11px;padding:4px 8px;"></button>
                 <button class="mobile-panel-tab" @click="openModal('batchDelete')" :disabled="selectedCount() === 0"
                         style="font-size:11px;padding:4px 8px;color:var(--danger);">Delete</button>
-                <button class="mobile-panel-tab" @click="toggleDeleteMode()" style="font-size:11px;padding:4px 8px;">✕</button>
+                <button class="mobile-panel-tab" @click="toggleDeleteMode()" aria-label="Cancel selection" style="font-size:12px;padding:4px 8px;"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
               </div>
             </template>
           </div>
@@ -299,30 +330,30 @@
                   x-show="viewMode === 'tree' && items.some(i => i.item_type === 'section')"
                   class="header-btn"
                   @click="toggleAllSections()"
-                  x-text="items.filter(i => i.item_type === 'section').every(s => collapsedSections[s.id]) ? '▶ Expand all' : '▼ Minimize all'">
+                  x-text="allSectionsCollapsed() ? 'Expand all' : 'Collapse all'">
                 </button>
-                <button x-show="activeProject.is_owner" class="header-btn" @click="toggleDeleteMode()">☑ Select</button>
+                <button x-show="activeProject.is_owner" class="header-btn" @click="toggleDeleteMode()"><svg class="icon" aria-hidden="true"><use href="#i-select"/></svg> Select</button>
                 <span class="header-visibility-badge">
-                  <span x-text="activeProject.visibility === 'public' ? '🌐 Public' : '🔒 Private'"></span>
+                  <svg class="icon" aria-hidden="true"><use :href="activeProject.visibility === 'public' ? '#i-globe' : '#i-lock'"/></svg><span x-text="activeProject.visibility === 'public' ? 'Public' : 'Private'"></span>
                 </span>
-                <button class="header-btn" :class="{ active: showProjectMenu }" @click="showProjectMenu = !showProjectMenu">
-                  ⚙ Project ▾
+                <button class="header-btn" :class="{ active: showProjectMenu }" @click="showProjectMenu = !showProjectMenu" aria-haspopup="menu" :aria-expanded="showProjectMenu">
+                  Project <svg class="icon" aria-hidden="true"><use href="#i-chevron-down"/></svg>
                 </button>
               </div>
 
               <!-- Delete mode actions -->
               <div x-show="deleteMode" class="header-actions">
                 <button class="header-btn" @click="allSelected() ? deselectAll() : selectAll()"
-                        x-text="allSelected() ? '✕ Deselect all' : '✓ Select all'"></button>
+                        x-text="allSelected() ? 'Deselect all' : 'Select all'"></button>
                 <span x-text="selectedCount() + ' selected'" style="font-size:12px;color:var(--text-muted);"></span>
                 <button class="header-btn" @click="openModal('batchDelete')" :disabled="selectedCount() === 0"
                         style="color:var(--danger);border-color:var(--danger);">Delete</button>
-                <button class="header-btn" @click="toggleDeleteMode()">✕ Cancel</button>
+                <button class="header-btn" @click="toggleDeleteMode()">Cancel</button>
               </div>
             </div>
-            <p class="progress-label" x-text="items.filter(i=>i.completion).length + ' of ' + items.filter(i=>i.item_type!=='section').length + ' done'"></p>
-            <div class="progress-bar-wrap">
-              <div class="progress-bar" :style="'width:' + (items.filter(i=>i.item_type!=='section').length ? Math.round(items.filter(i=>i.completion).length / items.filter(i=>i.item_type!=='section').length * 100) : 0) + '%'"></div>
+            <p class="progress-label" x-text="doneCount + ' of ' + taskItems.length + ' done' + (taskItems.length ? ' · ' + progressPct + '%' : '')"></p>
+            <div class="progress-bar-wrap" role="progressbar" aria-valuemin="0" aria-valuemax="100" :aria-valuenow="progressPct">
+              <div class="progress-bar" :style="{ width: progressPct + '%' }"></div>
             </div>
           </div>
 
@@ -354,8 +385,9 @@
                       <input x-show="deleteMode" type="checkbox" class="delete-checkbox"
                              :checked="!!selectedItems[item.id]" @change="toggleSelectItem(item)" @click.stop />
                       <button x-show="viewMode === 'tree' && !deleteMode" class="section-collapse-btn"
-                              @click.stop="toggleSection(item.id)" :title="collapsedSections[item.id] ? 'Expand section' : 'Collapse section'">
-                        <span x-text="collapsedSections[item.id] ? '▶' : '▼'"></span>
+                              @click.stop="toggleSection(item.id)" :title="collapsedSections[item.id] ? 'Expand section' : 'Collapse section'"
+                              :aria-label="collapsedSections[item.id] ? 'Expand section' : 'Collapse section'" :aria-expanded="!collapsedSections[item.id]">
+                        <svg class="icon chevron" :class="{ open: !collapsedSections[item.id] }" aria-hidden="true"><use href="#i-chevron-right"/></svg>
                       </button>
                       <span class="drag-handle" x-show="activeProject.is_owner && !deleteMode" title="Drag to reorder">⣿</span>
                       <div class="section-body">
@@ -371,8 +403,8 @@
                         </div>
                       </div>
                       <div class="section-actions" x-show="activeProject.is_owner && !deleteMode">
-                        <button class="btn-icon" @click.stop="openEditItemModal(item)" title="Edit">✏</button>
-                        <button class="btn-icon danger" @click.stop="openDeleteItemModal(item)" title="Delete">✕</button>
+                        <button class="btn-icon" @click.stop="openEditItemModal(item)" title="Edit" aria-label="Edit"><svg class="icon" aria-hidden="true"><use href="#i-edit"/></svg></button>
+                        <button class="btn-icon danger" @click.stop="openDeleteItemModal(item)" title="Delete" aria-label="Delete"><svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg></button>
                       </div>
                     </div>
                   </template>
@@ -385,26 +417,30 @@
                                :checked="!!selectedItems[item.id]" @change="toggleSelectItem(item)" @click.stop />
                         <span class="drag-handle" x-show="activeProject.is_owner && !deleteMode" title="Drag to reorder">⣿</span>
 
-                        <div
+                        <button
+                          type="button"
                           class="checkbox"
+                          role="checkbox"
                           x-show="!deleteMode"
+                          :aria-checked="!!item.completion"
+                          :aria-label="(item.completion ? 'Undo completion: ' : 'Mark as complete: ') + item.title"
                           @click="item.completion ? openUncompleteModal(item) : (activeProject.is_owner ? openCompleteModal(item) : handleNonOwnerCheck(item))"
                           :title="item.completion ? 'Undo completion' : 'Mark as complete'"
                         >
-                          <span class="checkmark" x-show="item.completion">✓</span>
-                        </div>
+                          <svg class="icon checkmark" x-show="item.completion" aria-hidden="true"><use href="#i-check"/></svg>
+                        </button>
 
                         <div class="item-body">
                           <div class="item-text" x-text="item.title"></div>
                           <div x-show="item.description" class="item-desc-wrap">
                             <div class="item-desc" x-text="item.description"></div>
-                            <button class="copy-desc-btn" @click.stop="copyDescription(item.description)" title="Copy description">⎘</button>
+                            <button class="copy-desc-btn" @click.stop="copyDescription(item.description)" title="Copy description" aria-label="Copy description"><svg class="icon" aria-hidden="true"><use href="#i-copy"/></svg></button>
                           </div>
                         </div>
 
                         <div class="item-actions" x-show="activeProject.is_owner && !deleteMode">
-                          <button class="btn-icon" @click.stop="openEditItemModal(item)" title="Edit">✏</button>
-                          <button class="btn-icon danger" @click.stop="openDeleteItemModal(item)" title="Delete">✕</button>
+                          <button class="btn-icon" @click.stop="openEditItemModal(item)" title="Edit" aria-label="Edit"><svg class="icon" aria-hidden="true"><use href="#i-edit"/></svg></button>
+                          <button class="btn-icon danger" @click.stop="openDeleteItemModal(item)" title="Delete" aria-label="Delete"><svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg></button>
                         </div>
                       </div>
 
@@ -433,7 +469,7 @@
                             <span class="done-empty">-</span>
                           </template>
                         </div>
-                        <button class="comment-icon-btn" @click.stop="openCommentPopup(item, $event)" title="Comments">💬</button>
+                        <button class="comment-icon-btn" @click.stop="openCommentPopup(item, $event)" title="Comments" aria-label="Comments"><svg class="icon" aria-hidden="true"><use href="#i-comment"/></svg></button>
                       </div>
                     </div>
                   </template>
@@ -442,10 +478,15 @@
               </template>
 
 
+              <div class="items-empty" x-show="items.length === 0">
+                <p x-text="activeProject.is_owner ? 'This checklist is empty.' : 'Nothing here yet.'"></p>
+                <p class="items-empty-sub" x-show="activeProject.is_owner">Add a task or section below, or import a Markdown or CSV file.</p>
+              </div>
+
               <template x-if="activeProject.is_owner && !deleteMode">
                 <div class="items-toolbar">
                   <button class="btn-add-item" @click="openModal('addItem')">+ Add task or section</button>
-                  <button class="btn-import" @click="openModal('import')" title="Bulk import from CSV">⬆ Import</button>
+                  <button class="btn-import" @click="openModal('import')" title="Bulk import from Markdown or CSV"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg> Import</button>
                 </div>
               </template>
 
@@ -487,8 +528,8 @@
                 </template>
                 <template x-if="user">
                   <div class="chat-input-wrap">
-                    <input class="chat-input" type="text" x-model="messageInput" @keyup.enter="sendMessage()" placeholder="Message…" />
-                    <button class="chat-send" @click="sendMessage()" :disabled="!messageInput.trim()">↑</button>
+                    <input class="chat-input" type="text" aria-label="Message" x-model="messageInput" maxlength="2000" @keyup.enter="sendMessage()" placeholder="Message…" />
+                    <button class="chat-send" @click="sendMessage()" :disabled="!messageInput.trim()" aria-label="Send message"><svg class="icon" aria-hidden="true"><use href="#i-send"/></svg></button>
                   </div>
                 </template>
               </div>

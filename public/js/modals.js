@@ -6,12 +6,12 @@ const _modalHTML = `
 
   <!-- Guest name -->
   <div class="modal-backdrop" x-show="modal === 'guestName'" @click.self="closeModal()">
-    <div class="modal">
+    <div class="modal" role="dialog" aria-modal="true">
       <h3>Your display name</h3>
       <div class="modal-body">
         <div class="form-group">
           <label>Name (used for all actions)</label>
-          <input type="text" x-model="guestNameInput" @keyup.enter="saveGuestName()" placeholder="Your name" />
+          <input type="text" x-model="guestNameInput" maxlength="100" @keyup.enter="saveGuestName()" placeholder="Your name" />
         </div>
       </div>
       <div class="modal-actions">
@@ -23,12 +23,12 @@ const _modalHTML = `
 
   <!-- Create project -->
   <div class="modal-backdrop" x-show="modal === 'createProject'" @click.self="closeModal()">
-    <div class="modal">
+    <div class="modal" role="dialog" aria-modal="true">
       <h3>New project</h3>
       <div class="modal-body">
         <div class="form-group">
           <label>Name</label>
-          <input type="text" x-model="createProjectForm.name" @keyup.enter="createProject()" placeholder="Project name" />
+          <input type="text" x-model="createProjectForm.name" maxlength="100" @keyup.enter="createProject()" placeholder="Project name" />
         </div>
         <div class="form-group">
           <label>Visibility</label>
@@ -48,7 +48,7 @@ const _modalHTML = `
 
   <!-- Add item -->
   <div class="modal-backdrop" x-show="modal === 'addItem'" @click.self="closeModal()">
-    <div class="modal">
+    <div class="modal" role="dialog" aria-modal="true">
       <h3>Add item</h3>
       <div class="modal-body">
         <div class="form-group">
@@ -60,16 +60,16 @@ const _modalHTML = `
         </div>
         <div class="form-group">
           <label x-text="itemForm.item_type === 'section' ? 'Section title' : 'Title'"></label>
-          <input type="text" x-model="itemForm.title" @keyup.enter="submitItem()" :placeholder="itemForm.item_type === 'section' ? 'e.g. Phase 1 — Getting Started' : 'What needs to be done?'" />
+          <input type="text" x-model="itemForm.title" maxlength="200" @keyup.enter="submitItem()" :placeholder="itemForm.item_type === 'section' ? 'e.g. Phase 1 — Getting Started' : 'What needs to be done?'" />
         </div>
         <div class="form-group">
           <label x-text="itemForm.item_type === 'section' ? 'Caption (optional)' : 'Description (optional)'"></label>
-          <textarea x-model="itemForm.description" rows="2" :placeholder="itemForm.item_type === 'section' ? 'Short description of this section...' : 'Details...'"></textarea>
+          <textarea x-model="itemForm.description" maxlength="2000" rows="2" :placeholder="itemForm.item_type === 'section' ? 'Short description of this section...' : 'Details...'"></textarea>
         </div>
         <template x-if="!user">
           <div class="form-group">
             <label>Your name</label>
-            <input type="text" x-model="itemForm.actor_name" placeholder="Your name" />
+            <input type="text" x-model="itemForm.actor_name" maxlength="100" placeholder="Your name" />
           </div>
         </template>
         <p class="error-msg" x-show="modalError" x-text="modalError"></p>
@@ -83,21 +83,21 @@ const _modalHTML = `
 
   <!-- Edit item -->
   <div class="modal-backdrop" x-show="modal === 'editItem'" @click.self="closeModal()">
-    <div class="modal">
+    <div class="modal" role="dialog" aria-modal="true">
       <h3>Edit item</h3>
       <div class="modal-body">
         <div class="form-group">
           <label>Title</label>
-          <input type="text" x-model="itemForm.title" @keyup.enter="submitItem()" />
+          <input type="text" x-model="itemForm.title" maxlength="200" @keyup.enter="submitItem()" />
         </div>
         <div class="form-group">
           <label>Description</label>
-          <textarea x-model="itemForm.description" rows="3"></textarea>
+          <textarea x-model="itemForm.description" maxlength="2000" rows="3"></textarea>
         </div>
         <template x-if="!user">
           <div class="form-group">
             <label>Your name</label>
-            <input type="text" x-model="itemForm.actor_name" placeholder="Your name" />
+            <input type="text" x-model="itemForm.actor_name" maxlength="100" placeholder="Your name" />
           </div>
         </template>
         <p class="error-msg" x-show="modalError" x-text="modalError"></p>
@@ -111,16 +111,16 @@ const _modalHTML = `
 
   <!-- Mark complete -->
   <div class="modal-backdrop" x-show="modal === 'complete'" @click.self="closeModal()">
-    <div class="modal">
+    <div class="modal" role="dialog" aria-modal="true">
       <h3>Mark as complete</h3>
       <p class="modal-sub" x-text="completingItem?.title"></p>
       <div class="form-group">
         <label>Completed by</label>
-        <input type="text" x-model="completeForm.done_by_name" @keyup.enter="submitComplete()" placeholder="Your name" />
+        <input type="text" x-model="completeForm.done_by_name" maxlength="100" @keyup.enter="submitComplete()" placeholder="Your name" />
       </div>
       <div class="form-group">
         <label>Notes (optional)</label>
-        <textarea x-model="completeForm.notes" rows="2" placeholder="Any notes..."></textarea>
+        <textarea x-model="completeForm.notes" maxlength="2000" rows="2" placeholder="Any notes..."></textarea>
       </div>
       <p class="error-msg" x-show="modalError" x-text="modalError"></p>
       <div class="modal-actions">
@@ -132,17 +132,17 @@ const _modalHTML = `
 
   <!-- Add PIC -->
   <div class="modal-backdrop" x-show="modal === 'addPic'" @click.self="closeModal()">
-    <div class="modal">
+    <div class="modal" role="dialog" aria-modal="true">
       <h3>Add PIC</h3>
       <p class="modal-sub" x-text="picTargetItem?.title"></p>
       <div class="form-group">
         <label>Name</label>
-        <input type="text" x-model="picForm.name" @keyup.enter="submitPic()" placeholder="Person in charge" />
+        <input type="text" x-model="picForm.name" maxlength="100" @keyup.enter="submitPic()" placeholder="Person in charge" />
       </div>
       <template x-if="!user">
         <div class="form-group">
           <label>Assigned by</label>
-          <input type="text" x-model="picForm.actor_name" placeholder="Your name" />
+          <input type="text" x-model="picForm.actor_name" maxlength="100" placeholder="Your name" />
         </div>
       </template>
       <p class="error-msg" x-show="modalError" x-text="modalError"></p>
@@ -155,12 +155,12 @@ const _modalHTML = `
 
   <!-- Non-owner assign (PIC / complete) -->
   <div class="modal-backdrop" x-show="modal === 'nonOwnerAssign'" @click.self="closeModal()">
-    <div class="modal">
+    <div class="modal" role="dialog" aria-modal="true">
       <h3 x-text="nonOwnerAssignMode === 'pic' ? 'Who is responsible?' : (nonOwnerAssignItem?.completion ? 'Edit completion' : 'Who completed this?')"></h3>
       <p class="modal-sub" x-text="nonOwnerAssignItem?.title?.slice(0, 60) + (nonOwnerAssignItem?.title?.length > 60 ? '...' : '')"></p>
       <div class="form-group">
         <label x-text="nonOwnerAssignMode === 'pic' ? 'Person in charge' : 'Your name'"></label>
-        <input type="text" x-model="nonOwnerAssignInput" @keyup.enter="submitNonOwnerAssign()" placeholder="Enter name..." />
+        <input type="text" x-model="nonOwnerAssignInput" maxlength="100" @keyup.enter="submitNonOwnerAssign()" placeholder="Enter name..." />
       </div>
       <p class="error-msg" x-show="nonOwnerAssignError" x-text="nonOwnerAssignError"></p>
       <div class="modal-actions">
@@ -172,7 +172,7 @@ const _modalHTML = `
 
   <!-- Undo completion -->
   <div class="modal-backdrop" x-show="modal === 'uncomplete'" @click.self="closeModal()">
-    <div class="modal">
+    <div class="modal" role="dialog" aria-modal="true">
       <h3>Undo completion?</h3>
       <p class="modal-sub" x-text="uncomletingItem?.title?.slice(0,80)"></p>
       <p style="font-size:13px;color:var(--text-muted);margin-top:4px;" x-show="uncomletingItem?.completion">
@@ -180,14 +180,14 @@ const _modalHTML = `
       </p>
       <div class="modal-actions">
         <button class="btn btn-secondary" @click="closeModal()">Cancel</button>
-        <button class="btn btn-primary" style="background:var(--danger);border-color:var(--danger);" @click="confirmUncomplete()">Undo</button>
+        <button class="btn btn-danger" @click="confirmUncomplete()">Undo</button>
       </div>
     </div>
   </div>
 
   <!-- Import / Markdown -->
   <div class="modal-backdrop" x-show="modal === 'import'" @click.self="closeModal()">
-    <div class="modal" style="max-width:460px;">
+    <div class="modal" role="dialog" aria-modal="true" style="max-width:460px;">
       <h3>Import checklist</h3>
       <p class="modal-sub">Bulk-create tasks and sections from a file. Choose a format below.</p>
       <div class="modal-body">
@@ -216,11 +216,11 @@ const _modalHTML = `
           </div>
         </template>
         <div style="display:flex;gap:8px;margin-bottom:12px;">
-          <button class="btn btn-secondary" style="flex:1;" @click="downloadTemplate('md')">⬇ Markdown template</button>
-          <button class="btn btn-secondary" style="flex:1;" @click="downloadTemplate('csv')">⬇ CSV template</button>
+          <button class="btn btn-secondary" style="flex:1;" @click="downloadTemplate('md')"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg> Markdown template</button>
+          <button class="btn btn-secondary" style="flex:1;" @click="downloadTemplate('csv')"><svg class="icon" aria-hidden="true"><use href="#i-download"/></svg> CSV template</button>
         </div>
         <label class="import-drop-zone" :class="{ loading: importLoading }">
-          <div class="import-drop-icon">📄</div>
+          <div class="import-drop-icon"><svg class="icon" aria-hidden="true"><use href="#i-file"/></svg></div>
           <div class="import-drop-text" x-text="importLoading ? 'Importing…' : 'Click to choose a file'"></div>
           <div class="import-drop-hint">.md and .csv files accepted · format auto-detected</div>
           <input type="file" accept=".md,.markdown,.csv,text/csv,text/markdown,text/plain" style="display:none;" @change="handleImportFile($event)" :disabled="importLoading" />
@@ -235,17 +235,17 @@ const _modalHTML = `
 
   <!-- Auth modal (shown to guests while viewing a project) -->
   <div class="modal-backdrop" x-show="modal === 'auth'" @click.self="closeModal()">
-    <div class="modal" style="max-width:360px;">
+    <div class="modal" role="dialog" aria-modal="true" style="max-width:360px;">
       <h3 x-text="authMode === 'login' ? 'Sign in' : 'Create account'"></h3>
       <p class="modal-sub">Group Checklist</p>
       <div class="modal-body" style="padding-top:4px;">
         <div class="form-group">
           <label>Username</label>
-          <input class="form-control" x-model="authForm.username" @keyup.enter="submitAuth()" placeholder="Enter username" autocomplete="username" />
+          <input class="form-control" x-model="authForm.username" maxlength="32" @keyup.enter="submitAuth()" placeholder="Enter username" autocomplete="username" />
         </div>
         <div class="form-group">
           <label>Password</label>
-          <input class="form-control" type="password" x-model="authForm.password" @keyup.enter="submitAuth()" placeholder="Enter password" autocomplete="current-password" />
+          <input class="form-control" type="password" x-model="authForm.password" maxlength="128" @keyup.enter="submitAuth()" placeholder="Enter password" autocomplete="current-password" />
         </div>
         <p class="error-msg" x-show="authError" x-text="authError"></p>
         <button class="btn btn-primary btn-block" style="margin-top:4px;" @click="submitAuth()" :disabled="authLoading">
@@ -261,26 +261,26 @@ const _modalHTML = `
 
   <!-- Delete project -->
   <div class="modal-backdrop" x-show="modal === 'deleteProject'" @click.self="closeModal()">
-    <div class="modal">
+    <div class="modal" role="dialog" aria-modal="true">
       <h3>Delete project?</h3>
       <p class="modal-sub" x-text="activeProject?.name"></p>
       <p style="font-size:13px;color:var(--text-muted);margin-top:4px;">All items, completions, and logs will be permanently deleted. This cannot be undone.</p>
       <div class="modal-actions">
         <button class="btn btn-secondary" @click="closeModal()">Cancel</button>
-        <button class="btn btn-primary" style="background:var(--danger);border-color:var(--danger);" @click="confirmDeleteProject()">Delete</button>
+        <button class="btn btn-danger" @click="confirmDeleteProject()">Delete</button>
       </div>
     </div>
   </div>
 
   <!-- Delete item -->
   <div class="modal-backdrop" x-show="modal === 'deleteItem'" @click.self="closeModal()">
-    <div class="modal">
+    <div class="modal" role="dialog" aria-modal="true">
       <h3>Delete item?</h3>
       <p class="modal-sub" x-text="deleteItemTarget?.title?.slice(0,80)"></p>
       <p style="font-size:13px;color:var(--text-muted);margin-top:4px;">This cannot be undone.</p>
       <div class="modal-actions">
         <button class="btn btn-secondary" @click="closeModal()">Cancel</button>
-        <button class="btn btn-primary" style="background:var(--danger);border-color:var(--danger);" @click="confirmDeleteItem()">Delete</button>
+        <button class="btn btn-danger" @click="confirmDeleteItem()">Delete</button>
       </div>
     </div>
   </div>
@@ -297,7 +297,7 @@ const _modalHTML = `
   >
     <div class="comment-popup-header">
       <span class="comment-popup-title" x-text="commentPopup.item?.title?.slice(0,60)"></span>
-      <button class="btn-link" @click="closeCommentPopup()" style="font-size:18px;line-height:1;padding:0 2px;">×</button>
+      <button class="btn-link" @click="closeCommentPopup()" aria-label="Close comments" style="font-size:16px;line-height:1;padding:2px;"><svg class="icon" aria-hidden="true"><use href="#i-x"/></svg></button>
     </div>
     <template x-if="commentPopup.item?.completion?.notes">
       <div class="comment-completion">
@@ -322,7 +322,7 @@ const _modalHTML = `
     </div>
     <template x-if="user">
       <div class="comment-add">
-        <textarea class="comment-textarea" x-model="commentPopup.input" @keydown.meta.enter="addComment()" @keydown.ctrl.enter="addComment()" placeholder="Add a comment…" rows="2"></textarea>
+        <textarea class="comment-textarea" x-model="commentPopup.input" maxlength="2000" @keydown.meta.enter="addComment()" @keydown.ctrl.enter="addComment()" placeholder="Add a comment…" rows="2"></textarea>
         <button class="btn btn-primary" style="font-size:12px;padding:5px 12px;align-self:flex-end;" @click="addComment()" :disabled="!commentPopup.input.trim()">Comment</button>
       </div>
     </template>
@@ -333,7 +333,7 @@ const _modalHTML = `
 
   <!-- Export -->
   <div class="modal-backdrop" x-show="modal === 'export'" @click.self="closeModal()">
-    <div class="modal" style="max-width:340px;">
+    <div class="modal" role="dialog" aria-modal="true" style="max-width:340px;">
       <h3>Export checklist</h3>
       <p class="modal-sub" x-text="activeProject?.name"></p>
       <div class="modal-body" style="display:flex;flex-direction:column;gap:10px;">
@@ -354,13 +354,13 @@ const _modalHTML = `
 
   <!-- Batch delete confirmation -->
   <div class="modal-backdrop" x-show="modal === 'batchDelete'" @click.self="closeModal()">
-    <div class="modal">
+    <div class="modal" role="dialog" aria-modal="true">
       <h3>Delete selected items?</h3>
       <p class="modal-sub" x-text="selectedCount() + ' item' + (selectedCount() !== 1 ? 's' : '') + ' will be permanently deleted.'"></p>
       <p style="font-size:13px;color:var(--text-muted);margin-top:4px;">This cannot be undone.</p>
       <div class="modal-actions">
         <button class="btn btn-secondary" @click="closeModal()">Cancel</button>
-        <button class="btn btn-primary" style="background:var(--danger);border-color:var(--danger);" @click="confirmBatchDelete()">Delete</button>
+        <button class="btn btn-danger" @click="confirmBatchDelete()">Delete</button>
       </div>
     </div>
   </div>
