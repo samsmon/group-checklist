@@ -94,9 +94,9 @@
       </div>
       <div class="sidebar-inner" x-show="sidebarOpen || mobileSidebarOpen" style="flex:1;display:flex;flex-direction:column;overflow:hidden;">
 
-      <div style="padding: 8px 6px 4px;">
+      <div style="padding: 6px 16px 0;">
         <button class="btn-new-project" @click="openModal('createProject')" x-show="user">
-          + New project
+          New project
         </button>
       </div>
 
@@ -156,100 +156,41 @@
       <!-- Dashboard mobile topbar (only visible on mobile, when no project open) -->
       <div class="mobile-topbar" x-show="!activeProject && !!user" style="justify-content:space-between;">
         <button class="mobile-hamburger" @click="mobileSidebarOpen = true" aria-label="Open menu"><svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg></button>
-        <span class="mobile-topbar-title">Home</span>
-        <button class="btn-new-dash" @click="openModal('createProject')">+ New</button>
+        <span class="mobile-topbar-title">Projects</span>
+        <button class="btn-new-dash" @click="openModal('createProject')">New project</button>
       </div>
 
       <!-- Dashboard (logged-in, no project selected) -->
       <div class="dashboard" x-show="!activeProject && !!user">
         <div class="dash-inner">
 
-          <!-- Welcome header -->
-          <div class="dash-welcome">
-            <div class="dash-welcome-title" x-text="'Hi, ' + (user?.username ?? '')"></div>
-            <div class="dash-welcome-sub" x-text="new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })"></div>
-          </div>
+          <h1 class="dash-title">Projects</h1>
 
-          <!-- Stats row -->
-          <div class="dash-stats-row" x-show="projects.length > 0">
-            <div class="dash-stat">
-              <div class="dash-stat-num" x-text="projects.length"></div>
-              <div class="dash-stat-label">Projects</div>
-            </div>
-            <div class="dash-stat">
-              <div class="dash-stat-num" x-text="projects.reduce((s,p) => s+(p.item_count||0), 0)"></div>
-              <div class="dash-stat-label">Total tasks</div>
-            </div>
-            <div class="dash-stat">
-              <div class="dash-stat-num" x-text="projects.reduce((s,p) => s+(p.completed_count||0), 0) + '/' + projects.reduce((s,p) => s+(p.item_count||0), 0)"></div>
-              <div class="dash-stat-label">Completed</div>
-            </div>
-            <div class="dash-stat dash-stat-accent">
-              <div class="dash-stat-num" x-text="(projects.reduce((s,p)=>s+(p.item_count||0),0) > 0 ? Math.round(projects.reduce((s,p)=>s+(p.completed_count||0),0) / projects.reduce((s,p)=>s+(p.item_count||0),0) * 100) : 0) + '%'"></div>
-              <div class="dash-stat-label">Overall done</div>
-            </div>
-          </div>
-
-          <!-- Section header -->
           <div class="dash-section-hdr" x-show="projects.length > 0">
-            <span class="dash-section-label">Recent projects</span>
-            <button class="dash-new-btn" @click="openModal('createProject')">+ New project</button>
+            <button class="dash-new-btn" @click="openModal('createProject')">New project</button>
           </div>
 
-          <!-- Empty state -->
           <template x-if="projects.length === 0">
             <div class="dash-empty">
-              <div class="dash-empty-icon">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-              </div>
               <div class="dash-empty-title">No projects yet</div>
-              <div class="dash-empty-sub">Create your first checklist to start collaborating.</div>
-              <button class="btn btn-primary" style="padding:9px 20px;margin-top:4px;" @click="openModal('createProject')">+ Create project</button>
+              <div class="dash-empty-sub">Create a checklist and share the link with your group.</div>
+              <button class="btn btn-primary" @click="openModal('createProject')">New project</button>
             </div>
           </template>
 
-          <!-- Cards grid -->
-          <div class="dash-cards" x-show="projects.length > 0">
-            <template x-for="p in projects" :key="p.id">
-              <div class="dash-card" @click="selectProject(p.slug)">
-                <div class="dash-card-head">
-                  <div class="dash-card-name" x-text="p.name"></div>
-                  <span class="dash-vis-badge" :class="p.visibility === 'public' ? 'dash-vis-pub' : 'dash-vis-priv'"
-                        x-text="p.visibility === 'public' ? 'Public' : 'Private'"></span>
-                </div>
-
-                <div class="dash-pct-row">
-                  <div class="dash-progress-wrap">
-                    <div class="dash-progress-bar"
-                         :style="{ width: (p.item_count > 0 ? Math.round(p.completed_count / p.item_count * 100) : 0) + '%' }"></div>
-                  </div>
-                  <span class="dash-pct-num"
-                        x-text="(p.item_count > 0 ? Math.round(p.completed_count / p.item_count * 100) : 0) + '%'"></span>
-                </div>
-
-                <div class="dash-card-footer">
-                  <div class="dash-footer-row">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-                    <span x-text="(p.completed_count || 0) + ' of ' + (p.item_count || 0) + ' tasks done'"></span>
-                  </div>
-                  <div class="dash-footer-row">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                    <span x-text="'Created ' + new Date(p.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })"></span>
-                  </div>
-                  <div class="dash-footer-row" x-show="p.last_activity_at">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                    <span x-text="p.last_activity_at ? 'Active ' + new Date(p.last_activity_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ' · ' + new Date(p.last_activity_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : ''"></span>
-                  </div>
-                  <div class="dash-footer-row" x-show="!p.last_activity_at" style="opacity:0.4;">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                    <span>No activity yet</span>
-                  </div>
-                </div>
-
-                <div class="dash-card-arrow" aria-hidden="true">→</div>
-              </div>
-            </template>
-          </div>
+          <table class="dash-table" x-show="projects.length > 0">
+            <thead><tr><th>Name</th><th>Progress</th><th>Last activity</th><th>Access</th></tr></thead>
+            <tbody>
+              <template x-for="p in projects" :key="p.id">
+                <tr>
+                  <td class="dash-name"><a :href="'#/p/' + p.slug" x-text="p.name"></a></td>
+                  <td class="dash-prog"><span class="mini"><i :style="{ width: (p.item_count > 0 ? Math.round(p.completed_count / p.item_count * 100) : 0) + '%' }"></i></span><span x-text="(p.completed_count || 0) + '/' + (p.item_count || 0)"></span></td>
+                  <td class="dash-meta" x-text="relTime(p.last_activity_at)"></td>
+                  <td class="dash-meta" x-text="p.visibility"></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
 
         </div>
       </div>

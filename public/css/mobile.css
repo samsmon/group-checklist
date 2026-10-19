@@ -1,56 +1,63 @@
 /* ---- Mobile topbar ---- */
 .mobile-topbar {
-  display: none; align-items: center; gap: 10px;
-  padding: 8px 12px; background: var(--bg);
-  border-bottom: 0.5px solid var(--border); flex-shrink: 0;
+  display: none; align-items: center; gap: 10px; padding: 10px 14px;
+  background: var(--paper); border-bottom: 1px solid var(--ink); flex-shrink: 0;
 }
-.mobile-topbar-title { flex: 1; font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.mobile-hamburger { background: none; border: none; font-size: 20px; line-height: 1; cursor: pointer; color: var(--text); padding: 2px 4px; flex-shrink: 0; }
-.mobile-panel-tabs { display: flex; gap: 2px; flex-shrink: 0; }
-.mobile-panel-tab { padding: 4px 10px; border-radius: 6px; border: none; background: none; font-size: 12px; font-weight: 500; cursor: pointer; color: var(--text-muted); }
-.mobile-panel-tab.active { background: var(--accent-bg); color: var(--accent); }
+.mobile-topbar-title { flex: 1; min-width: 0; font-size: 19px; font-weight: 600; font-style: italic; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mobile-panel-tabs { display: flex; gap: 14px; flex-shrink: 0; }
+.mobile-panel-tab {
+  padding: 2px 0; border: 0; border-bottom: 2px solid transparent; background: none; cursor: pointer;
+  font: 12px var(--mono); text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted);
+}
+.mobile-panel-tab.active { color: var(--ink); border-bottom-color: var(--ink); }
+.mobile-panel-tab:disabled { opacity: 0.4; }
 
 /* Overlay: x-show controls display entirely — no CSS display rule to avoid conflicts */
-.mobile-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 150; }
+.mobile-overlay { position: fixed; inset: 0; background: rgba(28, 27, 24, 0.5); z-index: 150; }
 
 @media (max-width: 768px) {
   .mobile-topbar { display: flex; }
-  .project-menu-dropdown { top: 48px; right: 8px; }
+  .project-menu-dropdown { top: 52px; right: 10px; }
 
   /* Sidebar becomes a slide-in drawer */
   .sidebar {
-    position: fixed !important;
-    top: 0; left: 0; bottom: 0; z-index: 200;
-    width: 260px !important; min-width: 260px !important;
-    transform: translateX(-100%);
-    transition: transform 0.22s ease;
-    box-shadow: 4px 0 16px rgba(0,0,0,0.18);
+    position: fixed !important; top: 0; left: 0; bottom: 0; z-index: 200;
+    width: 272px !important; min-width: 272px !important;
+    transform: translateX(-100%); transition: transform 0.22s ease;
   }
-  .sidebar.mobile-open { transform: translateX(0); }
+  .sidebar.mobile-open { transform: translateX(0); box-shadow: 4px 0 0 var(--rule); }
   .sidebar .sidebar-inner { display: flex !important; }
   .sidebar-toggle-row { display: none; }
 
-  /* main-header hidden — mobile-topbar replaces it */
+  /* main-header hidden: the topbar replaces it */
   .main-header { display: none; }
 
   /* Panels: only one visible at a time */
   .content-panels { flex-direction: row; }
-  .content-panels .main-content { flex: 1 0 100%; max-width: 100%; }
+  .content-panels .main-content { flex: 1 0 100%; max-width: 100%; padding: 0 18px 96px; }
   .content-panels .right-panel { width: 100% !important; min-width: 100% !important; border-left: none !important; flex-shrink: 0; }
   .content-panels.show-chat .main-content { display: none; }
   .content-panels:not(.show-chat) .right-panel { display: none; }
 
   /* Touch-friendly sizing */
-  .item-main { min-height: 44px; }
-  .btn, .btn-primary, .btn-secondary { min-height: 40px; }
-  .chat-input { font-size: 16px; } /* prevents iOS zoom */
-  .modal { margin: 12px; max-height: calc(100vh - 24px); overflow-y: auto; }
+  .btn { min-height: 42px; }
+  .chat-input, .form-group input, .form-group textarea, .form-group select { font-size: 16px; } /* prevents iOS zoom */
+  .modal { padding: 22px; }
+  .toast { left: 12px; right: 12px; bottom: 12px; max-width: none; }
+  .item-text { font-size: 18px; }
+  .item-footer { padding-left: 32px; }
+  .delete-bar { left: 12px; right: 12px; transform: none; justify-content: space-between; }
 
-  /* Dashboard mobile */
-  .dash-inner { padding: 20px 16px 48px; }
-  .dash-welcome-title { font-size: 17px; }
-  .dash-stats-row { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 22px; }
-  .dash-stat { padding: 12px 14px; }
-  .dash-stat-num { font-size: 19px; }
-  .dash-cards { grid-template-columns: 1fr; }
+  /* Dashboard: rows instead of a wide table */
+  .dash-inner { padding: 22px 18px 64px; }
+  .dash-title { font-size: 28px; }
+  .dash-section-hdr { display: none; } /* the topbar already has "New project" */
+  .dash-table thead { display: none; }
+  .dash-table, .dash-table tbody, .dash-table tr, .dash-table td { display: block; }
+  .dash-table tr { padding: 14px 0; border-bottom: 1px solid var(--rule); }
+  .dash-table td { padding: 0; border: 0; display: inline; }
+  .dash-table td.dash-name { display: block; margin-bottom: 4px; }
+  .dash-table td + td { margin-right: 14px; }
+
+  .auth-card h2 { font-size: 28px; }
 }

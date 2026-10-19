@@ -95,8 +95,17 @@ This applies to: completion, pics, and any other nested property.
 
 ## Frontend notes
 
+- **Design: "Ledger"** (a printed worksheet). Serif (Newsreader) for words, mono (IBM Plex Mono) for facts such as
+  times, PIC names and counts. Paper, ink and one ink-blue accent reserved for state (done, links, focus).
+  Reference: `docs/design/mockup-ledger.html`.
+- Fonts are self-hosted in `public/fonts` (SIL OFL, licenses alongside); `@font-face` lives in `css/vars.css`.
+- Tokens live in `css/vars.css` (`--paper`, `--ink`, `--muted`, `--rule`, `--accent`, `--danger`); dark mode overrides
+  the same tokens. Older names (`--bg`, `--text`, ...) are aliases. Check any new color pair against WCAG AA.
+- Avoid: cards with rounded corners or soft shadows, pill badges, left accent stripes, stat tiles, emoji, gradients.
+  Use hairline rules, 0 radius, text links for secondary actions, one filled button per dialog.
 - Icons are an inline SVG sprite at the top of `index.html`: `<svg class="icon"><use href="#i-name"/></svg>`.
-  No emoji icons.
+  Keep icons to functional ones (check, chevron, edit, delete, comment).
+- Print: `css/items.css` has a print block so a checklist prints as a clean sheet.
 - CSP allows only same-origin scripts plus `unsafe-eval` (Alpine) and inline styles. Do not add third-party
   script or style origins; vendor the file instead.
 - Input `maxlength` values mirror the server limits (title 200, description/notes/comments/chat 2000, names 100,

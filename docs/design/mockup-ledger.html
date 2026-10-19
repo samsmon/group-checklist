@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mockup A: Ledger</title>
+<style>
+  /* Direction A "Ledger": a printed worksheet. Serif for words, mono for facts,
+     hairline rules instead of cards, one ink-blue accent reserved for state. */
+  :root {
+    --paper: #f3efe4; --ink: #1c1b18; --muted: #6a665c; --rule: #cfc8b6; --rule-strong: #1c1b18;
+    --accent: #263a8f; --wash: #ebe6d8;
+    --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --mono: "IBM Plex Mono", "Cascadia Mono", ui-monospace, Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--paper); color: var(--ink); font: 16px/1.5 var(--serif); }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+  a { color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+  .mono { font-family: var(--mono); font-size: 12px; letter-spacing: 0.01em; }
+  .muted { color: var(--muted); }
+  .app { display: grid; grid-template-columns: 220px minmax(0, 1fr) 300px; min-height: 100vh; }
+
+  /* sidebar */
+  .side { border-right: 1px solid var(--rule-strong); padding: 24px 20px; display: flex; flex-direction: column; gap: 24px; }
+  .brand { font-size: 20px; font-style: italic; letter-spacing: -0.01em; }
+  .label { font: 11px/1 var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 10px; }
+  .plist { list-style: none; }
+  .plist li { display: flex; justify-content: space-between; gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--rule); cursor: pointer; }
+  .plist li[aria-current] { font-weight: 600; }
+  .plist li[aria-current] span:first-child { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1.5px; }
+  .side-foot { margin-top: auto; }
+  .new { text-decoration: underline; text-underline-offset: 3px; }
+
+  /* main */
+  .main { padding: 28px 44px 80px; max-width: 820px; width: 100%; margin: 0 auto; }
+  .head { border-bottom: 3px double var(--rule-strong); padding-bottom: 14px; margin-bottom: 8px; }
+  .head h1 { font-size: 34px; line-height: 1.1; font-weight: 600; letter-spacing: -0.02em; }
+  .head .meta { margin-top: 8px; display: flex; gap: 18px; flex-wrap: wrap; }
+  .bar { height: 3px; background: var(--rule); margin-top: 14px; }
+  .bar i { display: block; height: 3px; background: var(--accent); }
+  .tools { display: flex; gap: 18px; justify-content: flex-end; padding: 10px 0 4px; }
+  .tools button { font: 12px var(--mono); text-decoration: underline; text-underline-offset: 3px; color: var(--muted); }
+  .tools button:hover { color: var(--ink); }
+
+  /* sections and rows */
+  .sec { margin-top: 30px; }
+  .sec h2 { display: flex; justify-content: space-between; align-items: baseline; font-size: 19px; font-style: italic; font-weight: 600; border-bottom: 1px solid var(--rule-strong); padding-bottom: 4px; }
+  .sec .cap { font-size: 14px; color: var(--muted); margin-top: 4px; }
+  .row { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; column-gap: 14px; padding: 12px 0; border-bottom: 1px solid var(--rule); }
+  .box { width: 18px; height: 18px; margin-top: 3px; border: 1.5px solid var(--ink); display: grid; place-items: center; background: transparent; padding: 0; }
+  .row.done .box { background: var(--accent); border-color: var(--accent); color: var(--paper); }
+  .box svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 3; stroke-linecap: square; display: none; }
+  .row.done .box svg { display: block; }
+  .t { font-size: 17px; line-height: 1.35; }
+  .row.done .t { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1px; }
+  .d { color: var(--muted); font-size: 14px; margin-top: 2px; max-width: 54ch; }
+  .facts { text-align: right; display: flex; flex-direction: column; gap: 2px; align-items: flex-end; }
+  .facts .done-by { color: var(--accent); }
+  .add { display: block; width: 100%; text-align: left; padding: 14px 0; font-size: 15px; color: var(--muted); border-bottom: 1px dashed var(--rule); }
+  .add:hover { color: var(--ink); }
+
+  /* thread */
+  .thread { border-left: 1px solid var(--rule-strong); padding: 24px 22px; display: flex; flex-direction: column; }
+  .tabs { display: flex; gap: 18px; border-bottom: 1px solid var(--rule); margin-bottom: 16px; }
+  .tabs button { padding: 0 0 8px; margin-bottom: -1px; font: 12px var(--mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); border-bottom: 2px solid transparent; }
+  .tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ink); }
+  .msg { padding: 0 0 14px; }
+  .msg b { font-weight: 600; }
+  .msg p { font-size: 15px; margin-top: 2px; }
+  .compose { margin-top: auto; border-top: 1px solid var(--rule-strong); padding-top: 10px; display: flex; gap: 10px; }
+  .compose input { flex: 1; border: 0; border-bottom: 1px solid var(--rule); background: transparent; font: 15px var(--serif); padding: 4px 0; outline: none; color: var(--ink); }
+  .compose input:focus { border-bottom-color: var(--accent); }
+  .compose button { font: 12px var(--mono); color: var(--accent); text-decoration: underline; text-underline-offset: 3px; }
+
+  /* dashboard */
+  .dash h1 { font-size: 34px; font-weight: 600; letter-spacing: -0.02em; border-bottom: 3px double var(--rule-strong); padding-bottom: 12px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 18px; }
+  th { text-align: left; font: 11px var(--mono); text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 400; padding: 0 0 8px; border-bottom: 1px solid var(--rule-strong); }
+  td { padding: 13px 0; border-bottom: 1px solid var(--rule); vertical-align: baseline; }
+  th, td { white-space: nowrap; padding-right: 18px; }
+  td.n { font-size: 18px; white-space: normal; }
+  td.n small { margin-left: 10px; }
+  .mini { display: inline-block; width: 90px; height: 3px; background: var(--rule); vertical-align: middle; margin-right: 10px; }
+  .mini i { display: block; height: 3px; background: var(--accent); }
+  .switch { position: fixed; right: 14px; bottom: 14px; font: 12px var(--mono); background: var(--ink); color: var(--paper); display: flex; }
+  .switch button { padding: 6px 12px; }
+  .switch button[aria-pressed="true"] { background: var(--paper); color: var(--ink); outline: 1px solid var(--ink); outline-offset: -1px; }
+  .app.nothread { grid-template-columns: 220px minmax(0, 1fr); }
+  .app.nothread .thread { display: none; }
+  @media (max-width: 960px) { .app { grid-template-columns: 1fr; } .side, .thread { border: 0; } .main { padding: 20px; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">Group Checklist</div>
+    <nav>
+      <div class="label">Projects</div>
+      <ul class="plist" id="plist"></ul>
+    </nav>
+    <div class="side-foot mono"><span class="muted">signed in as</span> sam · <a href="#">sign out</a></div>
+  </aside>
+  <main class="main" id="main"></main>
+  <aside class="thread" id="thread"></aside>
+</div>
+<div class="switch"><button data-v="dash">Dashboard</button><button data-v="project">Project</button></div>
+<script>
+const DATA = {
+  projects: [
+    { name: "Launch checklist", vis: "private", done: 2, total: 8, last: "2 min ago" },
+    { name: "Trip planning", vis: "public", done: 11, total: 14, last: "Yesterday" },
+    { name: "Thesis reading list", vis: "private", done: 0, total: 6, last: "3 days ago" },
+    { name: "Weekly chores", vis: "public", done: 5, total: 5, last: "12 Oct" },
+  ],
+  sections: [
+    { title: "Phase 1 — Setup", cap: "Get the basics in place", tasks: [
+      { t: "Create the repository", d: "Clone it and configure the remote. Add the license file.", pic: ["Rina"], by: "sam", at: "19 Oct 21:25" },
+      { t: "Configure environment variables", pic: ["Dimas"] },
+      { t: "Set up CI", d: "Run the tests on every push.", pic: [] },
+    ]},
+    { title: "Phase 2 — Build", cap: "", tasks: [
+      { t: "Implement the API", d: "Routes for auth, projects, items.", pic: ["Rina", "Dimas"] },
+      { t: "Write tests", pic: ["Rina"], by: "Rina", at: "18 Oct 16:02" },
+      { t: "Review the security headers", pic: ["Dimas"] },
+    ]},
+    { title: "Phase 3 — Launch", cap: "", tasks: [
+      { t: "Deploy to staging", pic: [] },
+      { t: "Announce to the group", pic: ["sam"] },
+    ]},
+  ],
+  chat: [
+    { who: "Rina", at: "19 Oct 21:25", text: "Repo is ready." },
+    { who: "Dimas", at: "19 Oct 21:31", text: "Env vars next, give me an hour." },
+    { who: "sam", at: "19 Oct 21:40", text: "Ok, CI after that." },
+  ],
+};
+const TICK = '<svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"/></svg>';
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+
+function sidebar(active) {
+  $("#plist").innerHTML = DATA.projects.map((p, i) =>
+    `<li ${i === active ? "aria-current" : ""}><span>${esc(p.name)}</span><span class="mono muted">${p.done}/${p.total}</span></li>`).join("")
+    + `<li><a class="new" href="#">New project</a><span></span></li>`;
+}
+function dashboard() {
+  sidebar(-1);
+  $("#thread").innerHTML = "";
+  $("#main").innerHTML = `<div class="dash"><h1>Projects</h1><table>
+    <thead><tr><th>Name</th><th>Progress</th><th>Last activity</th><th>Access</th></tr></thead><tbody>` +
+    DATA.projects.slice().map((p) => `<tr><td class="n">${esc(p.name)}</td>
+      <td class="mono"><span class="mini"><i style="width:${Math.round(p.done / p.total * 100)}%"></i></span>${p.done}/${p.total}</td>
+      <td class="mono muted">${p.last}</td><td class="mono muted">${p.vis}</td></tr>`).join("") + `</tbody></table></div>`;
+}
+function project() {
+  sidebar(0);
+  const tasks = DATA.sections.flatMap((s) => s.tasks);
+  const done = tasks.filter((t) => t.by).length;
+  const pct = Math.round(done / tasks.length * 100);
+  $("#main").innerHTML = `<div class="head"><h1>Launch checklist</h1>
+    <div class="meta mono muted"><span>${done} of ${tasks.length} done · ${pct}%</span><span>private</span><span>3 members active</span></div>
+    <div class="bar"><i style="width:${pct}%"></i></div></div>
+    <div class="tools"><button>Collapse all</button><button>Select</button><button>Export</button><button>Import</button></div>` +
+    DATA.sections.map((s) => {
+      const d = s.tasks.filter((t) => t.by).length;
+      return `<section class="sec"><h2><span>${esc(s.title)}</span><span class="mono muted">${d}/${s.tasks.length}</span></h2>
+        ${s.cap ? `<p class="cap">${esc(s.cap)}</p>` : ""}` +
+        s.tasks.map((t) => `<div class="row ${t.by ? "done" : ""}">
+          <button class="box" aria-label="${t.by ? "Undo" : "Mark done"}: ${esc(t.t)}">${TICK}</button>
+          <div><div class="t">${esc(t.t)}</div>${t.d ? `<div class="d">${esc(t.d)}</div>` : ""}</div>
+          <div class="facts mono"><span class="muted">${t.pic.length ? "PIC " + t.pic.join(", ") : "unassigned"}</span>
+            ${t.by ? `<span class="done-by">${esc(t.by)} · ${t.at}</span>` : ""}</div></div>`).join("") +
+        `<button class="add">Add a task to this section</button></section>`;
+    }).join("");
+  $("#thread").innerHTML = `<div class="tabs"><button aria-selected="true">Chat</button><button aria-selected="false">Log</button></div>` +
+    DATA.chat.map((m) => `<div class="msg"><div class="mono muted"><b style="color:var(--ink);font-family:var(--serif);font-size:15px">${esc(m.who)}</b> &nbsp;${m.at}</div><p>${esc(m.text)}</p></div>`).join("") +
+    `<div class="compose"><input placeholder="Write a message" aria-label="Message"><button>Send</button></div>`;
+}
+const views = { dash: dashboard, project };
+function show(v) { document.querySelector(".app").classList.toggle("nothread", v === "dash"); views[v](); document.querySelectorAll(".switch button").forEach((b) => b.setAttribute("aria-pressed", b.dataset.v === v)); }
+document.querySelectorAll(".switch button").forEach((b) => b.onclick = () => show(b.dataset.v));
+show(location.hash === "#dash" ? "dash" : "project");
+</script>
+</body>
+</html>
