@@ -44,7 +44,8 @@ const _itemMethods = {
         if (idx !== -1) this.items[idx] = { ...this.items[idx], ...updated };
       } else {
         const item = await api('POST', `/api/projects/${this.activeProject.slug}/items`, payload);
-        this.items.push(item);
+        // The WebSocket event for this item can arrive before the HTTP response does
+        if (!this.items.find(i => i.id === item.id)) this.items.push(item);
       }
       this.closeModal();
       this.itemForm = { title: '', description: '', actor_name: '', item_type: 'task' };
@@ -279,42 +280,46 @@ const _itemMethods = {
     return title.length > 40 ? title.slice(0, 40) + '…' : title;
   },
 
-  _setCompletion(itemId, completion) {
+  // `slug` is the project the change was made in: an Undo clicked after switching projects must
+  // still hit that project, and must not touch the list now on screen.
+  _setCompletion(slug, itemId, completion) {
+    if (this.activeProject?.slug !== slug) return;
     const idx = this.items.findIndex(i => i.id === itemId);
     if (idx !== -1) this.items[idx] = { ...this.items[idx], completion };
   },
 
   async quickUncomplete(item) {
+    const slug = this.activeProject.slug;
     const previous = item.completion;
     try {
-      await api('DELETE', `/api/projects/${this.activeProject.slug}/items/${item.id}/complete`);
-      this._setCompletion(item.id, null);
+      await api('DELETE', `/api/projects/${slug}/items/${item.id}/complete`);
+      this._setCompletion(slug, item.id, null);
       this.showToast(`Marked open: ${this._shortTitle(item.title)}`, 'success', {
         label: 'Undo',
-        run: () => this.restoreCompletion(item.id, previous),
+        run: () => this.restoreCompletion(slug, item.id, previous),
       });
     } catch (e) {
       this.showToast(e.message, 'error');
     }
   },
 
-  async restoreCompletion(itemId, previous) {
+  async restoreCompletion(slug, itemId, previous) {
     try {
-      const completion = await api('POST', `/api/projects/${this.activeProject.slug}/items/${itemId}/complete`, {
+      const completion = await api('POST', `/api/projects/${slug}/items/${itemId}/complete`, {
         done_by_name: previous.done_by_name,
         notes: previous.notes || undefined,
         ...(!this.user ? { actor_name: this.guestName || previous.done_by_name } : {}),
       });
-      this._setCompletion(itemId, completion);
+      this._setCompletion(slug, itemId, completion);
     } catch (e) {
       this.showToast(e.message, 'error');
     }
   },
 
-  async undoComplete(itemId) {
+  async undoComplete(slug, itemId) {
     try {
-      await api('DELETE', `/api/projects/${this.activeProject.slug}/items/${itemId}/complete`);
-      this._setCompletion(itemId, null);
+      await api('DELETE', `/api/projects/${slug}/items/${itemId}/complete`);
+      this._setCompletion(slug, itemId, null);
     } catch (e) {
       this.showToast(e.message, 'error');
     }
@@ -331,16 +336,17 @@ const _itemMethods = {
   },
 
   async directComplete(item) {
+    const slug = this.activeProject.slug;
     const name = this.user?.username ?? this.guestName;
     try {
-      const completion = await api('POST', `/api/projects/${this.activeProject.slug}/items/${item.id}/complete`, {
+      const completion = await api('POST', `/api/projects/${slug}/items/${item.id}/complete`, {
         done_by_name: name,
         ...(!this.user ? { actor_name: name } : {}),
       });
-      this._setCompletion(item.id, completion);
+      this._setCompletion(slug, item.id, completion);
       this.showToast(`Done: ${this._shortTitle(item.title)}`, 'success', {
         label: 'Undo',
-        run: () => this.undoComplete(item.id),
+        run: () => this.undoComplete(slug, item.id),
       });
     } catch (e) {
       this.showToast(e.message, 'error');
