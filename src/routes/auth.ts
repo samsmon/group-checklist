@@ -6,13 +6,16 @@ import type { Context, Next } from "hono";
 
 const auth = new Hono<AppEnv>();
 
-const JWT_SECRET = process.env.JWT_SECRET ?? "dev_secret_change_me";
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET is not set");
+}
 const COOKIE_NAME = "token";
 const COOKIE_TTL = 60 * 60 * 24 * 30; // 30 days
 
 // ---- JWT (HS256, Web Crypto — no external dep) ----
 
-function b64urlEncode(buf: ArrayBuffer): string {
+function b64urlEncode(buf: ArrayBuffer | Uint8Array): string {
   let str = "";
   for (const b of new Uint8Array(buf)) str += String.fromCharCode(b);
   return btoa(str).replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
@@ -21,6 +24,15 @@ function b64urlEncode(buf: ArrayBuffer): string {
 function b64urlDecode(s: string): Uint8Array {
   const pad = s.replace(/-/g, "+").replace(/_/g, "/");
   return Uint8Array.from(atob(pad), (c) => c.charCodeAt(0));
+}
+
+// JSON <-> base64url as UTF-8 (btoa alone throws on non-Latin1 characters)
+function encodeJson(value: object): string {
+  return b64urlEncode(new TextEncoder().encode(JSON.stringify(value)));
+}
+
+function decodeJson(s: string): any {
+  return JSON.parse(new TextDecoder().decode(b64urlDecode(s)));
 }
 
 async function hmacKey(secret: string, usage: "sign" | "verify") {
@@ -34,10 +46,8 @@ async function hmacKey(secret: string, usage: "sign" | "verify") {
 }
 
 async function jwtSign(payload: object): Promise<string> {
-  const header = btoa(JSON.stringify({ alg: "HS256", typ: "JWT" }))
-    .replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
-  const body = btoa(JSON.stringify(payload))
-    .replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
+  const header = encodeJson({ alg: "HS256", typ: "JWT" });
+  const body = encodeJson(payload);
   const data = `${header}.${body}`;
   const key = await hmacKey(JWT_SECRET, "sign");
   const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(data));
@@ -58,7 +68,7 @@ async function jwtVerify(token: string): Promise<{ sub: string; username: string
   );
   if (!valid) throw new Error("invalid signature");
 
-  const payload = JSON.parse(atob(body.replace(/-/g, "+").replace(/_/g, "/")));
+  const payload = decodeJson(body);
   if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) {
     throw new Error("token expired");
   }
@@ -75,7 +85,12 @@ function cookieString(token: string) {
 function parseCookieHeader(header: string | undefined, name: string): string | null {
   if (!header) return null;
   const match = header.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`));
-  return match ? decodeURIComponent(match[1]) : null;
+  if (!match) return null;
+  try {
+    return decodeURIComponent(match[1]);
+  } catch {
+    return null; // malformed percent-encoding: treat as no cookie
+  }
 }
 
 function jsonWithCookie(data: object, token: string, status = 200): Response {
