@@ -3,7 +3,7 @@ import { customAlphabet } from "nanoid";
 import sql from "../db";
 import { authMiddleware } from "./auth";
 import { writeLog } from "../middleware/logger";
-import { broadcastToRoom } from "../ws";
+import { broadcastToRoom, closeRoom, CLOSE_PRIVATE, CLOSE_GONE } from "../ws";
 import { getProject, canAccess, isOwner } from "../lib/access";
 import itemsRouter from "./items";
 import logsRouter from "./logs";
@@ -164,6 +164,8 @@ projects.patch("/:slug", async (c) => {
   });
 
   broadcastToRoom(slug, { event: "project.updated", data: updated });
+  // Sockets are authorised only when they connect: drop everyone but the owner once it is private
+  if (updated.visibility === "private") closeRoom(slug, project.owner_id, CLOSE_PRIVATE, "project is now private");
   return c.json(updated);
 });
 
@@ -180,6 +182,7 @@ projects.delete("/:slug", async (c) => {
   await sql`DELETE FROM projects WHERE id = ${project.id}`;
 
   broadcastToRoom(slug, { event: "project.deleted", data: { slug } });
+  closeRoom(slug, null, CLOSE_GONE, "project deleted");
   return c.json({ ok: true });
 });
 

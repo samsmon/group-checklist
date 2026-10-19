@@ -17,6 +17,7 @@ const _wsMethods = {
       ws._ping = setInterval(() => { if (ws.readyState === WebSocket.OPEN) ws.send('ping'); }, 25000);
       clearTimeout(this._offlineTimer);
       this._offlineTimer = null;
+      this._wsFails = 0;
       this.wsOffline = false;
       // Events sent while we were disconnected are gone: reload what the server has now
       if (this._wsDropped) {
@@ -34,14 +35,29 @@ const _wsMethods = {
       } catch { /* ignore */ }
     };
 
-    ws.onclose = () => {
+    ws.onclose = (e) => {
       clearInterval(ws._ping);
-      if (this.wsSlug === slug) {
-        this._wsDropped = true;
-        // Show "reconnecting" only if the drop lasts, so short blips do not flicker
-        if (!this._offlineTimer) this._offlineTimer = setTimeout(() => { this.wsOffline = true; }, 2000);
-        setTimeout(() => { if (this.wsSlug === slug) this.connectWs(slug); }, 3000);
+      if (this.wsSlug !== slug) return;
+
+      // The server closed us on purpose (project turned private or was deleted): do not retry
+      if (e.code === 4403 || e.code === 4404) {
+        this.showToast(e.code === 4403 ? 'This project is now private.' : 'This project was deleted.', 'error');
+        this.activeProject = null;
+        this.items = [];
+        this.messages = [];
+        this.logsData = [];
+        this.disconnectWs();
+        window.location.hash = '';
+        return;
       }
+
+      this._wsDropped = true;
+      // Show "reconnecting" only if the drop lasts, so short blips do not flicker
+      if (!this._offlineTimer) this._offlineTimer = setTimeout(() => { this.wsOffline = true; }, 2000);
+      // Back off 3s, 6s, 12s ... up to 30s so a server that rejects us is not hammered
+      this._wsFails = (this._wsFails || 0) + 1;
+      const delay = Math.min(30000, 3000 * 2 ** Math.min(this._wsFails - 1, 4));
+      setTimeout(() => { if (this.wsSlug === slug) this.connectWs(slug); }, delay);
     };
 
     ws.onerror = (e) => console.error('[ws] error:', e);
@@ -52,6 +68,7 @@ const _wsMethods = {
       clearTimeout(this._offlineTimer);
       this._offlineTimer = null;
       this._wsDropped = false;
+      this._wsFails = 0;
       this.wsOffline = false;
     }
     if (this.ws) {
