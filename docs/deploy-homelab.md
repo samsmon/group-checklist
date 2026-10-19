@@ -19,7 +19,7 @@ group-checklist runs as a Docker Compose service on the homelab. The server itse
 
 | Variable | Required | Notes |
 |----------|----------|-------|
-| `JWT_SECRET` | yes | The app exits at startup if unset. Generate with `openssl rand -hex 32`. Changing it signs everyone out. |
+| `JWT_SECRET` | yes | The app exits at startup if unset or shorter than 32 characters. Generate with `openssl rand -hex 32`. Changing it signs everyone out. |
 | `DATABASE_URL` | yes | `postgresql://group_checklist_app:<password>@shared-postgres:5432/group_checklist` |
 | `DB_SSL` | no | `disable` on the homelab network. `prefer` or `require` for managed databases. |
 | `PORT` | no | Must be `8080` to match the compose port mapping. |
@@ -45,6 +45,12 @@ all current migrations are additive (`IF NOT EXISTS`).
 
 The n8n auto-deploy workflow described in `homelab-ops/docs/n8n-auto-deploy.md` polls this project too. Check that
 document for whether it is still dry-run before assuming a push reaches the server.
+
+**The database must be migrated.** Migration 002 adds `item_type`, `item_comments` and `project_messages`; code from
+`main` fails on project pages until it has run. Do not skip the `migrate.ts` step.
+
+The compose file defines a healthcheck (`/health`, which reports 503 when the database is unreachable) and a 512 MB
+memory limit. Check the result with `docker ps` (the status shows `healthy`) or `docker inspect --format '{{.State.Health.Status}}' group-checklist`.
 
 ## Rolling back
 
