@@ -4,7 +4,8 @@
   "scripts": {
     "dev": "bun run --watch src/index.ts",
     "start": "bun run src/index.ts",
-    "migrate": "bun run scripts/migrate.ts"
+    "migrate": "bun run scripts/migrate.ts",
+    "test": "bun test"
   },
   "dependencies": {
     "hono": "^4.7.0",
@@ -13,6 +14,8 @@
     "hono-rate-limiter": "^0.4.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.10",
+    "@electric-sql/pglite-socket": "^0.2.13",
     "bun-types": "latest"
   }
 }
