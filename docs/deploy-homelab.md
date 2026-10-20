@@ -46,8 +46,10 @@ all current migrations are additive (`IF NOT EXISTS`).
 The n8n auto-deploy workflow described in `homelab-ops/docs/n8n-auto-deploy.md` polls this project too. Check that
 document for whether it is still dry-run before assuming a push reaches the server.
 
-**The database must be migrated.** Migration 002 adds `item_type`, `item_comments` and `project_messages`; code from
-`main` fails on project pages until it has run. Do not skip the `migrate.ts` step.
+**The database must be migrated.** Migration 002 adds `item_type`, `item_comments` and `project_messages`; 003 adds
+`project_groups` and the archive/pin/activity columns on checklists. Code from `main` fails on the dashboard and
+project pages until they have run. Do not skip the `migrate.ts` step. Migrations are additive, so a rollback to the
+previous commit still works against a migrated database.
 
 The compose file defines a healthcheck (`/health`, which reports 503 when the database is unreachable) and a 512 MB
 memory limit. Check the result with `docker ps` (the status shows `healthy`) or `docker inspect --format '{{.State.Health.Status}}' group-checklist`.
