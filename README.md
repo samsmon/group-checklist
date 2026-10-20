@@ -84,6 +84,7 @@ bun run migrate
 | `src/middleware/` | Request metadata, audit log writer, rate limiters |
 | `public/` | Alpine.js single-page UI (`index.html`, `js/`, `css/`, `vendor/`) |
 | `migrations/`, `scripts/migrate.ts` | Schema and migration runner |
+| `tests/` | Bun tests (API, migrations, access rules, WebSocket rooms); CI in `.github/workflows` |
 | `Dockerfile`, `docker-compose.yml` | Container build and run |
 | `legacy/ec2/` | Historical EC2 deployment files (nginx, systemd, init scripts) |
 
@@ -94,3 +95,4 @@ bun run migrate
 | `bun run dev` | Start with file watching |
 | `bun run start` | Start without watching |
 | `bun run migrate` | Apply pending migrations |
+| `bun test` | Run the tests. They start an in-process Postgres (PGlite), so there is nothing to install; set `TEST_DATABASE_URL` to use a real server |

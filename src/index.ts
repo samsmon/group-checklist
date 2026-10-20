@@ -21,6 +21,7 @@ import { requestMeta } from "./middleware/logger";
 import { broadcastToRoom, canJoin, joinRoom, leaveRoom, roomSize } from "./ws";
 import authRoutes from "./routes/auth";
 import projectRoutes from "./routes/projects";
+import groupRoutes from "./routes/groups";
 import { authMiddleware } from "./routes/auth";
 import { getProject, canAccess } from "./lib/access";
 import type { AppEnv } from "./types";
@@ -30,7 +31,7 @@ export { broadcastToRoom };
 const app = new Hono<AppEnv>();
 
 // Global middleware
-app.use("*", logger());
+if (process.env.NODE_ENV !== "test") app.use("*", logger());
 app.use("*", requestMeta);
 
 // Security headers. Alpine's standard build compiles expressions with Function(), hence
@@ -74,6 +75,7 @@ app.use(
 app.use("/api/auth/login", loginLimiter);
 app.use("/api/auth/register", registerLimiter);
 app.use("/api/projects/*", writeLimiter);
+app.use("/api/groups/*", writeLimiter);
 app.use("/api/projects/:slug/messages", chatLimiter);
 app.use("/api/projects/:slug/items/:id/comments", chatLimiter);
 app.use("/api/projects/:slug/items/import", importLimiter);
@@ -93,6 +95,7 @@ app.get("/health", async (c) => {
 // API routes
 app.route("/api/auth", authRoutes);
 app.route("/api/projects", projectRoutes);
+app.route("/api/groups", groupRoutes);
 
 // WebSocket: /ws/:slug
 const { upgradeWebSocket, websocket } = createBunWebSocket<ServerWebSocket<unknown>>();

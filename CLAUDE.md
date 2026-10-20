@@ -23,7 +23,8 @@ src/
   types.ts          # AppEnv, User types
   routes/
     auth.ts         # Register, login, logout, /me + authMiddleware, JWT helpers
-    projects.ts     # CRUD projects, mounts items/logs/messages routers
+    projects.ts     # CRUD checklists (list with search/filter/sort/paging, pin/archive/move), mounts items/logs/messages
+    groups.ts       # Groups ("projects" in the UI) that hold checklists: CRUD, rollup counts, owner-only
     items.ts        # CRUD items, PICs, completions, comments, reorder, import, batch delete
     messages.ts     # Project chat
     logs.ts         # Audit log with cursor pagination (ip/user_agent only in admin level)
@@ -32,7 +33,8 @@ src/
     rateLimit.ts    # Per-IP limiters
   lib/
     access.ts       # getProject(), canAccess(), isOwner()
-    validate.ts     # readJson, cleanText, parseLimit, isUuid, BadRequest
+    validate.ts     # readJson, cleanText, parseLimit/parseOffset, isUuid, optionalBool, escapeLike, BadRequest
+    migrate.ts      # runMigrations(): shared by scripts/migrate.ts and the tests
 public/
   index.html        # Alpine.js SPA, light/dark theme, SVG icon sprite
   app.js            # Alpine data object
@@ -45,6 +47,12 @@ Dockerfile, docker-compose.yml
 docs/deploy-homelab.md
 legacy/ec2/         # historical, do not edit
 ```
+
+## Naming (read this first)
+
+In the UI a **Project** is a group and a **Checklist** is one list of items. In the database and the API the
+checklist is still the row of `projects` (`/api/projects/:slug`, `#/p/<slug>`), and the group is `project_groups`
+(`/api/groups`). Renaming the API was left out on purpose so existing links keep working.
 
 ## Auth (CRITICAL)
 
@@ -77,8 +85,14 @@ legacy/ec2/         # historical, do not edit
 PostgreSQL on the homelab (`shared-postgres`). Add schema changes as a new `migrations/NNN_name.sql`
 (additive and idempotent: `IF NOT EXISTS`), then run `bun scripts/migrate.ts`. Never edit an applied migration.
 
-Key tables: `users`, `projects`, `checklist_items` (`item_type` = task | section), `item_pics`,
-`item_completions`, `item_comments`, `project_messages`, `logs`.
+Key tables: `users`, `projects` (checklists), `project_groups`, `checklist_items` (`item_type` = task | section),
+`item_pics`, `item_completions`, `item_comments`, `project_messages`, `logs`.
+
+- `projects.last_activity_at` is bumped by `writeLog()` for public-level events (not for owner-only management such
+  as pin, archive, move). The dashboard sorts on it; do not go back to aggregating the `logs` table per request.
+- `projects.group_id` is nullable and `ON DELETE SET NULL`: deleting a group ungroups its checklists.
+- `GET /api/projects` returns an array and puts the match count in the `X-Total-Count` header.
+- Viewers of a public checklist get public fields only; `group_id`, `archived_at`, `pinned_at` are owner-only.
 
 ## Alpine.js reactivity (CRITICAL)
 
@@ -154,7 +168,16 @@ bun run migrate
 bun run dev
 ```
 
-`.env` is gitignored. There is no test suite or CI yet.
+`.env` is gitignored.
+
+## Tests
+
+`bun test` runs `tests/*.test.ts` against a real Postgres. Without configuration, `tests/setup.ts` starts PGlite
+(Postgres compiled to WASM) inside the test process, applies all migrations, and throws it away afterwards: nothing
+is installed or left running. Set `TEST_DATABASE_URL` (localhost only) to use a real server instead; CI does this
+(`.github/workflows/test.yml`, Postgres 16 service). Tests call the app in-process through `tests/helpers.ts`
+(`api()`, `register()`), each session with its own fake client IP so rate limits do not interfere.
+Add a test with every route or migration change.
 
 ## Known patterns
 
