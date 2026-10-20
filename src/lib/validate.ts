@@ -40,6 +40,24 @@ export function cleanText(value: unknown, max: number, field = "value"): string 
   return text;
 }
 
+// A boolean field that may be absent; anything else (including "true") is a 400.
+export function optionalBool(value: unknown, field: string): boolean | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "boolean") throw new BadRequest(`${field} must be true or false`);
+  return value;
+}
+
+// Query-string offset: 0 when missing or invalid, capped so it cannot be abused.
+export function parseOffset(raw: string | undefined, max = 100000): number {
+  const n = Number.parseInt(raw ?? "", 10);
+  return Number.isFinite(n) && n > 0 ? Math.min(n, max) : 0;
+}
+
+// Make a user's search text literal inside ILIKE ('%' and '_' are wildcards, '\' escapes).
+export function escapeLike(text: string): string {
+  return text.replace(/[\\%_]/g, (c) => "\\" + c);
+}
+
 // Query-string limit: default when missing or not a number, clamped to [1, max].
 export function parseLimit(raw: string | undefined, fallback: number, max: number): number {
   const n = Number.parseInt(raw ?? "", 10);

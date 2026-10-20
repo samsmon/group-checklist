@@ -42,6 +42,11 @@ export async function writeLog(params: {
         ${params.log_level ?? "public"}
       )
     `;
+    // Dashboard ordering reads this column instead of aggregating the whole log table.
+    // Owner-only management events (pin, archive, move) are not "activity".
+    if ((params.log_level ?? "public") === "public") {
+      await sql`UPDATE projects SET last_activity_at = NOW() WHERE id = ${params.project_id}`;
+    }
   } catch (err) {
     // Log failures must never crash the main request
     console.error("[writeLog] failed:", err);
