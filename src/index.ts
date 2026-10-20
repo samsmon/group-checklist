@@ -125,10 +125,10 @@ app.get(
         leaveRoom(slug, ws.raw as ServerWebSocket<unknown>);
         console.log(`[ws] left ${slug}`);
       },
-      onMessage(evt) {
-        if (evt.data === "ping") {
-          (evt.target as ServerWebSocket<unknown>).send("pong");
-        }
+      // Answer through the socket context. evt.target is null in current Hono/Bun, and reading it threw
+      // a TypeError that took the whole server down on the first heartbeat (25 s after a client connected).
+      onMessage(evt, ws) {
+        if (evt.data === "ping") ws.send("pong");
       },
       onError(evt) {
         console.error(`[ws] error in ${slug}:`, evt);
