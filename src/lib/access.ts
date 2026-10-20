@@ -10,6 +10,10 @@ export async function getProject(slug: string) {
       visibility: "public" | "private";
       created_at: string;
       updated_at: string;
+      group_id: string | null;
+      archived_at: string | null;
+      pinned_at: string | null;
+      last_activity_at: string | null;
     }[]
   >`SELECT * FROM projects WHERE slug = ${slug}`;
   return project ?? null;
