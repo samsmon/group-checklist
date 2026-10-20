@@ -17,7 +17,7 @@
   <link rel="stylesheet" href="/css/panels.css" />
   <link rel="stylesheet" href="/css/mobile.css" />
 </head>
-<body x-data="app" x-init="init()" x-cloak @keydown.escape.window="handleEscape()" @keydown.tab.window="trapFocus($event)">
+<body x-data="app" x-init="init()" x-cloak @keydown.escape.window="handleEscape()" @keydown.tab.window="trapFocus($event)" @keydown.slash.window="focusSearch($event)">
   <nav aria-label="Skip links"><a class="skip-link" href="#" @click.prevent="skipToList()">Skip to the list</a></nav>
 
   <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
@@ -97,34 +97,69 @@
       </div>
       <div class="sidebar-inner" x-show="sidebarOpen || mobileSidebarOpen">
 
-      <div style="padding: 6px 16px 0;">
-        <button class="btn-new-project" @click="openModal('createProject')" x-show="user">
-          New project
-        </button>
+      <div style="padding: 6px 16px 0;" x-show="user">
+        <button class="btn-new-project" @click="openCreateChecklist()">New checklist</button>
       </div>
 
       <div class="sidebar-projects">
         <template x-if="user">
           <div>
-            <div class="sidebar-home-item" :class="{ active: !activeProject }" @click="goHome(); mobileSidebarOpen = false">
+            <a class="sidebar-home-item" href="#" :class="{ active: !activeProject }" @click.prevent="goHome(); mobileSidebarOpen = false">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
               Home
-            </div>
-            <div class="sidebar-section-label">Projects</div>
-            <template x-for="p in projects" :key="p.id">
-              <div class="project-item" :class="{active: activeProject?.slug === p.slug}" @click="selectProject(p.slug)">
-                <span class="project-item-name" x-text="p.name"></span>
-                <span class="badge-vis" :class="p.visibility === 'public' ? 'badge-public' : 'badge-private'" x-text="p.visibility === 'public' ? 'pub' : 'priv'"></span>
+            </a>
+
+            <template x-if="sidebarPinned().length > 0">
+              <div>
+                <div class="sidebar-section-label">Pinned</div>
+                <template x-for="p in sidebarPinned()" :key="p.id">
+                  <a class="project-item" :href="'#/p/' + p.slug" :class="{active: activeProject?.slug === p.slug}" @click="mobileSidebarOpen = false">
+                    <span class="project-item-name" x-text="p.name"></span>
+                    <span class="badge-vis" x-text="p.visibility === 'public' ? 'pub' : 'priv'"></span>
+                  </a>
+                </template>
               </div>
             </template>
-            <div style="padding: 12px 10px; color: var(--text-muted); font-size: 12px;" x-show="projects.length === 0">
-              No projects yet.
+
+            <div class="sidebar-section-label side-label-row">
+              <span>Projects</span>
+              <button class="side-add" @click="openCreateGroup()" title="New project" aria-label="New project">+</button>
             </div>
+            <template x-for="g in groups" :key="g.id">
+              <div class="side-group">
+                <button class="side-group-head" @click="toggleSidebarGroup(g)" :aria-expanded="sidebarGroupOpen(g)">
+                  <svg class="icon chevron" :class="{ open: sidebarGroupOpen(g) }" aria-hidden="true"><use href="#i-chevron-right"/></svg>
+                  <span class="side-group-name" x-text="g.name"></span>
+                  <span class="badge-vis" x-text="g.checklist_count"></span>
+                </button>
+                <div x-show="sidebarGroupOpen(g)">
+                  <template x-for="p in sidebarGroupRows(g)" :key="p.id">
+                    <a class="project-item nested" :href="'#/p/' + p.slug" :class="{active: activeProject?.slug === p.slug}" @click="mobileSidebarOpen = false">
+                      <span class="project-item-name" x-text="p.name"></span>
+                      <span class="badge-vis" x-text="p.visibility === 'public' ? 'pub' : 'priv'"></span>
+                    </a>
+                  </template>
+                  <div class="side-empty nested" x-show="sidebarGroupRows(g).length === 0">Nothing here yet</div>
+                </div>
+              </div>
+            </template>
+            <div class="side-empty" x-show="groups.length === 0">No projects yet.</div>
+
+            <div class="sidebar-section-label" x-show="sidebarLoose().length > 0">No project</div>
+            <template x-for="p in sidebarLooseShown()" :key="p.id">
+              <a class="project-item" :href="'#/p/' + p.slug" :class="{active: activeProject?.slug === p.slug}" @click="mobileSidebarOpen = false">
+                <span class="project-item-name" x-text="p.name"></span>
+                <span class="badge-vis" x-text="p.visibility === 'public' ? 'pub' : 'priv'"></span>
+              </a>
+            </template>
+            <a class="side-more" href="#" x-show="sidebarLooseMore() > 0"
+               @click.prevent="openGroupInDash('none'); mobileSidebarOpen = false" x-text="sidebarLooseMore() + ' more…'"></a>
+            <div class="side-empty" x-show="projects.length === 0">No checklists yet.</div>
           </div>
         </template>
         <template x-if="!user && activeProject">
-          <div style="padding: 10px; color: var(--text-muted); font-size: 12px; line-height: 1.6;">
-            Viewing shared project.<br>
+          <div style="padding: 10px 0; color: var(--text-muted); font-size: 14px; line-height: 1.6;">
+            Viewing a shared checklist.<br>
             <a href="#" style="color: var(--accent);" @click.prevent="authMode='login'; openModal('auth')">Sign in</a> to manage your own.
           </div>
         </template>
@@ -155,47 +190,142 @@
 
       <!-- Guest landing -->
       <div class="empty-state" x-show="!activeProject && !user">
-        <p>Open a shared project link to get started.</p>
+        <p>Open a shared checklist link to get started.</p>
       </div>
 
-      <!-- Dashboard mobile topbar (only visible on mobile, when no project open) -->
+      <!-- Dashboard mobile topbar (only visible on mobile, when no checklist is open) -->
       <div class="mobile-topbar" x-show="!activeProject && !!user" style="justify-content:space-between;">
         <button class="mobile-hamburger" @click="mobileSidebarOpen = true" aria-label="Open menu"><svg class="icon" aria-hidden="true"><use href="#i-menu"/></svg></button>
-        <span class="mobile-topbar-title">Projects</span>
-        <button class="btn-new-dash" @click="openModal('createProject')">New project</button>
+        <span class="mobile-topbar-title">Checklists</span>
+        <button class="btn-new-dash" @click="openCreateChecklist()">New</button>
       </div>
 
-      <!-- Dashboard (logged-in, no project selected) -->
+      <!-- Dashboard (signed in, no checklist open) -->
       <div class="dashboard" x-show="!activeProject && !!user">
         <div class="dash-inner">
 
-          <h1 class="dash-title">Projects</h1>
+          <h1 class="dash-title">Checklists</h1>
 
-          <div class="dash-section-hdr" x-show="projects.length > 0">
-            <button class="dash-new-btn" @click="openModal('createProject')">New project</button>
+          <div class="dash-toolbar">
+            <div class="dash-tabs" role="tablist" aria-label="Show">
+              <button role="tab" :aria-selected="!dash.archived" :class="{ active: !dash.archived }" @click="setDashArchived(false)">Active</button>
+              <button role="tab" :aria-selected="dash.archived" :class="{ active: dash.archived }" @click="setDashArchived(true)">Archived</button>
+            </div>
+            <div class="dash-new-row">
+              <button class="dash-new-btn" @click="openCreateChecklist()">New checklist</button>
+              <button class="dash-new-btn" @click="openCreateGroup()">New project</button>
+            </div>
           </div>
 
-          <template x-if="projects.length === 0">
-            <div class="dash-empty">
-              <div class="dash-empty-title">No projects yet</div>
-              <div class="dash-empty-sub">Create a checklist and share the link with your group.</div>
-              <button class="btn btn-primary" @click="openModal('createProject')">New project</button>
+          <div class="dash-controls">
+            <input type="search" class="dash-search" id="dash-search" x-model="dash.q" maxlength="100"
+                   @input.debounce.250ms="loadDash()" @keydown.escape="dash.q = ''; loadDash()"
+                   placeholder="Search checklists  ( / )" aria-label="Search checklists" />
+            <select class="dash-select" x-model="dash.group" @change="loadDash()" :disabled="dash.archived" aria-label="Project">
+              <option value="all">All projects</option>
+              <option value="none">No project</option>
+              <template x-for="g in groups" :key="g.id"><option :value="g.id" x-text="g.name"></option></template>
+            </select>
+            <select class="dash-select" x-model="dash.sort" @change="loadDash()" aria-label="Sort by">
+              <option value="activity">Recent activity</option>
+              <option value="name">Name</option>
+              <option value="created">Newest</option>
+            </select>
+          </div>
+
+          <p class="dash-status" role="status">
+            <span x-show="dashLoading && dashRows.length === 0">Loading…</span>
+            <span x-show="!(dashLoading && dashRows.length === 0)" x-text="dashTotal + (dashTotal === 1 ? ' checklist' : ' checklists') + (dash.group !== 'all' ? ' in ' + dashGroupName : '') + (dash.q.trim() ? ' matching “' + dash.q.trim() + '”' : '') + (dash.archived ? ' archived' : '')"></span>
+            <button class="link-btn" x-show="dashFiltering && !dash.archived" @click="resetDash()">clear filters</button>
+          </p>
+
+          <template x-if="dash.archived && archivedGroups.length > 0">
+            <div class="dash-archived-groups">
+              <div class="label-mono">Archived projects</div>
+              <template x-for="g in archivedGroups" :key="g.id">
+                <div class="archived-group-row">
+                  <span x-text="g.name"></span>
+                  <span class="row-acts">
+                    <button class="row-act" @click="setGroupArchived(g, false)">restore</button>
+                    <button class="row-act danger" @click="openDeleteGroup(g)">delete</button>
+                  </span>
+                </div>
+              </template>
             </div>
           </template>
 
-          <table class="dash-table" x-show="projects.length > 0">
-            <thead><tr><th>Name</th><th>Progress</th><th>Last activity</th><th>Access</th></tr></thead>
-            <tbody>
-              <template x-for="p in projects" :key="p.id">
-                <tr>
-                  <td class="dash-name"><a :href="'#/p/' + p.slug" x-text="p.name"></a></td>
-                  <td class="dash-prog"><span class="mini"><i :style="{ width: (p.item_count > 0 ? Math.round(p.completed_count / p.item_count * 100) : 0) + '%' }"></i></span><span x-text="(p.completed_count || 0) + '/' + (p.item_count || 0)"></span></td>
-                  <td class="dash-meta" x-text="relTime(p.last_activity_at)"></td>
-                  <td class="dash-meta" x-text="p.visibility"></td>
+          <template x-if="dashTotal === 0 && !dashLoading && !dashFiltering && groups.length === 0">
+            <div class="dash-empty">
+              <div class="dash-empty-title">No checklists yet</div>
+              <div class="dash-empty-sub">Create a checklist and share the link with your group. Projects let you keep related checklists together.</div>
+              <button class="btn btn-primary" @click="openCreateChecklist()">New checklist</button>
+            </div>
+          </template>
+
+          <table class="dash-table" x-show="dashRows.length > 0 || (dashGrouped && groups.length > 0)">
+            <thead>
+              <tr><th>Name</th><th>Progress</th><th>Last activity</th><th>Access</th><th><span class="sr-only">Actions</span></th></tr>
+            </thead>
+            <template x-for="sec in dashSections()" :key="sec.key">
+              <tbody>
+                <template x-if="dashGrouped">
+                  <tr class="group-row">
+                    <td colspan="5">
+                      <div class="group-head">
+                        <button class="group-toggle" @click="toggleDashGroup(sec.group ? sec.group.id : 'none')"
+                                :aria-expanded="!closedGroups[sec.group ? sec.group.id : 'none']">
+                          <svg class="icon chevron" :class="{ open: !closedGroups[sec.group ? sec.group.id : 'none'] }" aria-hidden="true"><use href="#i-chevron-right"/></svg>
+                          <span class="group-name" x-text="sec.group ? sec.group.name : 'No project'"></span>
+                        </button>
+                        <span class="group-meta" x-show="sec.group"
+                              x-text="sec.group ? (sec.group.completed_count + '/' + sec.group.item_count + ' done · ' + sec.group.checklist_count + (sec.group.checklist_count === 1 ? ' checklist' : ' checklists')) : ''"></span>
+                        <span class="mini" x-show="sec.group"><i :style="{ width: sec.group ? pct(sec.group.completed_count, sec.group.item_count) + '%' : '0%' }"></i></span>
+                        <span class="row-acts" x-show="sec.group">
+                          <button class="row-act" @click="openCreateChecklist(sec.group.id)">+ checklist</button>
+                          <button class="row-act" @click="openGroupInDash(sec.group)">open</button>
+                          <button class="row-act" @click="openEditGroup(sec.group)">edit</button>
+                          <button class="row-act" @click="setGroupArchived(sec.group, true)">archive</button>
+                          <button class="row-act danger" @click="openDeleteGroup(sec.group)">delete</button>
+                        </span>
+                      </div>
+                      <p class="group-note" x-show="sec.group && sec.group.description" x-text="sec.group ? sec.group.description : ''"></p>
+                    </td>
+                  </tr>
+                </template>
+                <template x-for="p in sec.rows" :key="p.id">
+                  <tr x-show="!(dashGrouped && closedGroups[sec.group ? sec.group.id : 'none'])">
+                    <td class="dash-name">
+                      <a :href="'#/p/' + p.slug" x-text="p.name"></a>
+                      <span class="pin-mark" x-show="p.pinned_at" title="Pinned">pinned</span>
+                    </td>
+                    <td class="dash-prog"><span class="mini"><i :style="{ width: pct(p.completed_count, p.item_count) + '%' }"></i></span><span x-text="(p.completed_count || 0) + '/' + (p.item_count || 0)"></span></td>
+                    <td class="dash-meta" x-text="relTime(p.last_activity_at)"></td>
+                    <td class="dash-meta" x-text="p.visibility"></td>
+                    <td class="dash-row-acts">
+                      <span class="row-acts">
+                        <button class="row-act" x-show="!p.archived_at" @click="togglePin(p)" x-text="p.pinned_at ? 'unpin' : 'pin'"></button>
+                        <button class="row-act" @click="openMove(p)">move</button>
+                        <button class="row-act" @click="toggleArchive(p)" x-text="p.archived_at ? 'restore' : 'archive'"></button>
+                      </span>
+                    </td>
+                  </tr>
+                </template>
+                <tr class="group-empty" x-show="dashGrouped && sec.group && sec.group.checklist_count === 0 && !closedGroups[sec.group.id]">
+                  <td colspan="5">No checklists in this project yet.</td>
                 </tr>
-              </template>
-            </tbody>
+                <tr class="group-more" x-show="dashGrouped && sec.group && sec.group.checklist_count > sec.rows.length && !closedGroups[sec.group.id]">
+                  <td colspan="5"><button class="link-btn" @click="openGroupInDash(sec.group)"
+                      x-text="(sec.group ? sec.group.checklist_count - sec.rows.length : 0) + ' more in this project: open them'"></button></td>
+                </tr>
+              </tbody>
+            </template>
           </table>
+
+          <p class="dash-none" x-show="dashFiltering && dashRows.length === 0 && !dashLoading">Nothing matches. <button class="link-btn" @click="resetDash()">Clear filters</button></p>
+
+          <div class="dash-more" x-show="dashRows.length < dashTotal">
+            <button class="btn btn-secondary" @click="loadDash(true)" :disabled="dashLoading">Show more (<span x-text="dashTotal - dashRows.length"></span> left)</button>
+          </div>
 
         </div>
       </div>
@@ -219,10 +349,18 @@
               <svg class="icon" aria-hidden="true"><use :href="activeProject.visibility === 'public' ? '#i-lock' : '#i-globe'"/></svg>
               <span x-text="activeProject.visibility === 'public' ? 'Make private' : 'Make public'"></span>
             </button>
-            <div x-show="activeProject.is_owner" class="project-menu-divider"></div>
-            <button x-show="activeProject.is_owner" class="project-menu-item danger" @click="showProjectMenu = false; openDeleteProjectModal()">
-              <svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg> Delete project
-            </button>
+            <template x-if="activeProject.is_owner">
+              <div>
+                <div class="project-menu-divider"></div>
+                <button class="project-menu-item" @click="showProjectMenu = false; openMove(activeProject)">Move to project…</button>
+                <button class="project-menu-item" @click="showProjectMenu = false; togglePin(activeProject)" x-text="activeProject.pinned_at ? 'Unpin from sidebar' : 'Pin to sidebar'"></button>
+                <button class="project-menu-item" @click="showProjectMenu = false; toggleArchive(activeProject)" x-text="activeProject.archived_at ? 'Restore from archive' : 'Archive'"></button>
+                <div class="project-menu-divider"></div>
+                <button class="project-menu-item danger" @click="showProjectMenu = false; openDeleteProjectModal()">
+                  <svg class="icon" aria-hidden="true"><use href="#i-trash"/></svg> Delete checklist
+                </button>
+              </div>
+            </template>
           </div>
 
           <!-- Mobile top bar -->
@@ -268,6 +406,10 @@
 
           <!-- Header -->
           <div class="main-header">
+            <p class="crumb" x-show="activeGroup || activeProject.archived_at">
+              <template x-if="activeGroup"><span><a href="#" @click.prevent="openGroupInDash(activeGroup)" x-text="activeGroup.name"></a> /</span></template>
+              <span class="archived-note" x-show="activeProject.archived_at">Archived. <button class="link-btn" @click="toggleArchive(activeProject)">Restore</button></span>
+            </p>
             <div class="main-header-top">
               <h1 class="main-title" x-text="activeProject.name"></h1>
 
@@ -285,7 +427,7 @@
                   <svg class="icon" aria-hidden="true"><use :href="activeProject.visibility === 'public' ? '#i-globe' : '#i-lock'"/></svg><span x-text="activeProject.visibility === 'public' ? 'Public' : 'Private'"></span>
                 </span>
                 <button class="header-btn" :class="{ active: showProjectMenu }" @click="showProjectMenu = !showProjectMenu" aria-haspopup="menu" :aria-expanded="showProjectMenu">
-                  Project <svg class="icon" aria-hidden="true"><use href="#i-chevron-down"/></svg>
+                  Checklist <svg class="icon" aria-hidden="true"><use href="#i-chevron-down"/></svg>
                 </button>
               </div>
 

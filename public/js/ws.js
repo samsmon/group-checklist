@@ -42,7 +42,7 @@ const _wsMethods = {
       // The server closed us on purpose (project turned private or was deleted): do not retry
       if (e.code === 4403 || e.code === 4404) {
         if (this._deletingSlug !== slug) {
-          this.showToast(e.code === 4403 ? 'This project is now private.' : 'This project was deleted.', 'error');
+          this.showToast(e.code === 4403 ? 'This checklist is now private.' : 'This checklist was deleted.', 'error');
         }
         this.closeModal(); // a dialog for a project we can no longer see is moot
         this._leaveProject();
@@ -158,8 +158,8 @@ const _wsMethods = {
         if (this.activeProject) this.activeProject = { ...this.activeProject, ...data };
         break;
       case 'project.deleted':
-        // The person who deleted it already gets "Project deleted." from their own request
-        if (this._deletingSlug !== data.slug) this.showToast('This project has been deleted.', 'error');
+        // The person who deleted it already gets "Checklist deleted." from their own request
+        if (this._deletingSlug !== data.slug) this.showToast('This checklist has been deleted.', 'error');
         this.closeModal();
         this._leaveProject();
         break;

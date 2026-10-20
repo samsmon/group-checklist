@@ -21,14 +21,21 @@ const _modalHTML = `
     </div>
   </div>
 
-  <!-- Create project -->
+  <!-- Create checklist -->
   <div class="modal-backdrop" x-show="modal === 'createProject'" @click.self="closeModal()">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-2">
-      <h3 id="modal-title-2">New project</h3>
+      <h3 id="modal-title-2">New checklist</h3>
       <div class="modal-body">
         <div class="form-group">
           <label>Name</label>
-          <input type="text" x-model="createProjectForm.name" maxlength="100" @keyup.enter="createProject()" placeholder="Project name" />
+          <input type="text" x-model="createProjectForm.name" maxlength="100" @keyup.enter="createProject()" placeholder="Checklist name" />
+        </div>
+        <div class="form-group">
+          <label>Project (optional)</label>
+          <select x-model="createProjectForm.group_id">
+            <option value="">No project</option>
+            <template x-for="g in groups" :key="g.id"><option :value="g.id" x-text="g.name"></option></template>
+          </select>
         </div>
         <div class="form-group">
           <label>Visibility</label>
@@ -42,6 +49,63 @@ const _modalHTML = `
       <div class="modal-actions">
         <button class="btn btn-secondary" @click="closeModal()">Cancel</button>
         <button class="btn btn-primary" @click="createProject()">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Create / edit project (a group of checklists) -->
+  <div class="modal-backdrop" x-show="modal === 'group'" @click.self="closeModal()">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-group">
+      <h3 id="modal-title-group" x-text="groupForm.id ? 'Edit project' : 'New project'"></h3>
+      <p class="modal-sub">A project keeps related checklists together.</p>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Name</label>
+          <input type="text" x-model="groupForm.name" maxlength="100" @keyup.enter="submitGroup()" placeholder="For example: Thesis, Trip planning" />
+        </div>
+        <div class="form-group">
+          <label>Description (optional)</label>
+          <textarea x-model="groupForm.description" maxlength="500" rows="2"></textarea>
+        </div>
+        <p class="error-msg" x-show="modalError" x-text="modalError"></p>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" @click="closeModal()">Cancel</button>
+        <button class="btn btn-primary" @click="submitGroup()" x-text="groupForm.id ? 'Save' : 'Create'"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Move a checklist to a project -->
+  <div class="modal-backdrop" x-show="modal === 'moveChecklist'" @click.self="closeModal()">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-move">
+      <h3 id="modal-title-move">Move to project</h3>
+      <p class="modal-sub" x-text="moveTarget?.name"></p>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Project</label>
+          <select x-model="moveGroupId">
+            <option value="">No project</option>
+            <template x-for="g in groups" :key="g.id"><option :value="g.id" x-text="g.name"></option></template>
+          </select>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" @click="closeModal()">Cancel</button>
+        <button class="btn btn-primary" @click="submitMove()">Move</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete project (group) -->
+  <div class="modal-backdrop" x-show="modal === 'deleteGroup'" @click.self="closeModal()">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-delgroup">
+      <h3 id="modal-title-delgroup">Delete project?</h3>
+      <p class="modal-sub" x-text="groupTarget?.name"></p>
+      <p style="font-size:15px;color:var(--text-muted);margin-top:4px;">The checklists inside are kept and move to “No project”. This cannot be undone.</p>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" @click="closeModal()">Cancel</button>
+        <button class="btn btn-danger" @click="confirmDeleteGroup()">Delete</button>
       </div>
     </div>
   </div>
@@ -244,10 +308,10 @@ const _modalHTML = `
     </div>
   </div>
 
-  <!-- Delete project -->
+  <!-- Delete checklist -->
   <div class="modal-backdrop" x-show="modal === 'deleteProject'" @click.self="closeModal()">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title-10">
-      <h3 id="modal-title-10">Delete project?</h3>
+      <h3 id="modal-title-10">Delete checklist?</h3>
       <p class="modal-sub" x-text="activeProject?.name"></p>
       <p style="font-size:13px;color:var(--text-muted);margin-top:4px;">All items, completions, and logs will be permanently deleted. This cannot be undone.</p>
       <div class="modal-actions">

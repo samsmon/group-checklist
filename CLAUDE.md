@@ -121,6 +121,13 @@ Compression and ETag skip `/api`, `/ws` and `/health`. Unknown `/api/*` paths re
 - **Design: "Ledger"** (a printed worksheet). Serif (Newsreader) for words, mono (IBM Plex Mono) for facts such as
   times, PIC names and counts. Paper, ink and one ink-blue accent reserved for state (done, links, focus).
   Reference: `docs/design/mockup-ledger.html`.
+- **Lists** (`js/projects.js`): `projects` = the sidebar's active checklists (max 200, most recent first), `groups` = the
+  owner's projects with rolled-up counts, `dashRows`/`dashTotal` = the dashboard query (`dash` holds q, group, archived, sort).
+  Always call `refreshLists()` after anything that changes grouping, pin, archive or deletion. Use `apiList()` (not `api()`)
+  when you need `X-Total-Count`. A stale dashboard reply is dropped via `_dashSeq`.
+- Getters (`dashGrouped`, `dashFiltering`, `activeGroup`, ...) must live in `app.js`: the method files are spread into the
+  Alpine object and the spread would freeze a getter at its first value.
+- `npm run dev:db` + `bun run seed` give a realistic local database (see the README); use it to check list views.
 - Fonts are self-hosted in `public/fonts` (SIL OFL, licenses alongside); `@font-face` lives in `css/vars.css`.
 - Tokens live in `css/vars.css` (`--paper`, `--ink`, `--muted`, `--rule`, `--accent`, `--danger`); dark mode overrides
   the same tokens. Older names (`--bg`, `--text`, ...) are aliases. Check any new color pair against WCAG AA.

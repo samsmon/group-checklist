@@ -35,14 +35,29 @@ document.addEventListener('alpine:init', () => {
     authError: '',
     authLoading: false,
 
-    projects: [],
+    // Naming: a "project" in the UI is a group; a "checklist" is one list. In the API and these variables
+    // the checklist is still called "project" (see CLAUDE.md).
+    projects: [],            // sidebar: the signed-in user's active checklists (up to 200, most recent first)
+    groups: [],              // active groups (UI "projects") with rolled-up progress
+    archivedGroups: [],      // shown on the dashboard's Archived tab
     activeProject: null,
     items: [],
+
+    dash: { q: '', group: 'all', archived: false, sort: 'activity' },
+    dashRows: [],            // dashboard checklists matching the filters (paged)
+    dashTotal: 0,
+    dashLoading: false,
+    openGroups: JSON.parse(localStorage.getItem('openGroups') || '{}'),    // sidebar: group id -> expanded
+    closedGroups: JSON.parse(localStorage.getItem('closedGroups') || '{}'), // dashboard: group id -> collapsed
+    groupForm: { id: null, name: '', description: '' },
+    groupTarget: null,       // group in the delete dialog
+    moveTarget: null,        // checklist in the move dialog
+    moveGroupId: '',
 
     modal: null,
     modalError: '',
 
-    createProjectForm: { name: '', visibility: 'private' },
+    createProjectForm: { name: '', visibility: 'private', group_id: '' },
     itemForm: { title: '', description: '', actor_name: '', item_type: 'task' },
     editingItem: null,
     completeForm: { done_by_name: '', notes: '' },
@@ -138,6 +153,21 @@ document.addEventListener('alpine:init', () => {
       }
     },
 
+    // The dashboard lists checklists under their project when no search or filter is active
+    get dashGrouped() {
+      return this.dash.group === 'all' && !this.dash.q.trim() && !this.dash.archived;
+    },
+    get dashFiltering() {
+      return this.dash.group !== 'all' || !!this.dash.q.trim() || this.dash.archived;
+    },
+    get dashGroupName() {
+      if (this.dash.group === 'none') return 'No project';
+      return this.groups.find(g => g.id === this.dash.group)?.name ?? '';
+    },
+    get activeGroup() {
+      const id = this.activeProject?.group_id;
+      return id ? this.groups.find(g => g.id === id) ?? null : null;
+    },
     get taskItems() {
       return this.items.filter(i => i.item_type !== 'section');
     },

@@ -58,8 +58,8 @@ const _chatMethods = {
       'item.pic_added': 'assigned PIC',
       'item.pic_removed': 'removed PIC',
       'item.reordered': 'reordered items',
-      'project.created': 'created project',
-      'project.updated': 'updated project',
+      'project.created': 'created checklist',
+      'project.updated': 'updated checklist',
     };
     return map[action] || action;
   },

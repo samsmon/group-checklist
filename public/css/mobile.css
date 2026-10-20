@@ -61,3 +61,16 @@
 
   .auth-card h2 { font-size: 28px; }
 }
+
+/* Dashboard additions on phones */
+@media (max-width: 768px) {
+  .dash-toolbar { align-items: stretch; }
+  .dash-controls { gap: 12px; }
+  .dash-search { flex-basis: 100%; }
+  .dash-select { flex: 1; max-width: none; }
+  .dash-table .group-row td, .dash-table .group-empty td { display: block; }
+  .dash-table td.dash-row-acts { display: block; margin-top: 6px; text-align: left; }
+  .dash-row-acts .row-acts { opacity: 1; }
+  .group-head .row-acts { margin-left: 0; flex-basis: 100%; }
+  .dash-table tbody tr { padding: 12px 0; }
+}

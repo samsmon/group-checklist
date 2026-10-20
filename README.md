@@ -27,6 +27,16 @@ bun run dev              # http://localhost:3000
 
 `JWT_SECRET` is required: the server refuses to start without it.
 
+No Postgres installed? `bun run dev:db` starts one for you (PGlite, Postgres compiled to WASM, kept in `.dev-db/`; add `--memory` to start empty every time) and prints the `DATABASE_URL` to use. `bun run seed` then fills it with a demo user (`demo` / `demo-password`) and 150 checklists in 8 projects, which is handy for trying the dashboard with a long list. The seed refuses any database that is not on localhost.
+
+## Projects and checklists
+
+A **checklist** is one list of tasks. A **project** keeps several checklists together (an owner-only grouping). The dashboard
+lists checklists grouped by project with search, a project filter, sorting, and an Active/Archived switch; each row can be pinned,
+moved to a project or archived. The sidebar shows pinned checklists, then projects (expand to see their checklists), then the
+latest checklists that have no project. In the API and the database a checklist is still the `projects` table; projects are
+`project_groups` (see `CLAUDE.md`).
+
 ## Deployment
 
 The app runs from `docker-compose.yml` on the homelab. Full procedure, environment
