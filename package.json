@@ -5,7 +5,9 @@
     "dev": "bun run --watch src/index.ts",
     "start": "bun run src/index.ts",
     "migrate": "bun run scripts/migrate.ts",
-    "test": "bun test"
+    "test": "bun test",
+    "dev:db": "bun scripts/dev-db.ts",
+    "seed": "bun scripts/seed-demo.ts"
   },
   "dependencies": {
     "hono": "^4.7.0",

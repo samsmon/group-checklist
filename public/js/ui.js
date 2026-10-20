@@ -9,6 +9,18 @@ const _uiMethods = {
     else html.removeAttribute('data-theme');
   },
 
+  // "/" jumps to the dashboard search, unless you are typing somewhere or a dialog is open
+  focusSearch(e) {
+    const tag = (e.target?.tagName || '').toLowerCase();
+    if (['input', 'textarea', 'select'].includes(tag) || e.target?.isContentEditable) return;
+    if (this.modal || this.activeProject || !this.user) return;
+    const el = document.getElementById('dash-search');
+    if (!el) return;
+    e.preventDefault();
+    el.focus();
+    el.select();
+  },
+
   toggleTheme() {
     this.theme = this.isDark ? 'light' : 'dark';
     localStorage.setItem('theme', this.theme);
