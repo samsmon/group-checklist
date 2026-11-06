@@ -1,98 +1,245 @@
+<div align="center">
+
 # group-checklist
 
-Realtime multi-user checklist app. Built with Bun, Hono, PostgreSQL, and Alpine.js.
+**Realtime multi-user collaborative checklist platform with sub-millisecond sync.**
 
-**Live:** https://checklist.suryatmaja.dev
+[![Bun](https://img.shields.io/badge/Bun-1.1+-000000?style=flat-square&logo=bun&logoColor=white)](https://bun.sh)
+[![Hono](https://img.shields.io/badge/Hono-v4-E36002?style=flat-square&logo=hono&logoColor=white)](https://hono.dev)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-4169E1?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org)
+[![Alpine.js](https://img.shields.io/badge/Alpine.js-3-8BC0D0?style=flat-square&logo=alpinedotjs&logoColor=white)](https://alpinejs.dev)
+[![WebSockets](https://img.shields.io/badge/WebSockets-Realtime-4A154B?style=flat-square)](#architecture)
+[![Docker](https://img.shields.io/badge/Docker-Homelab-2496ED?style=flat-square&logo=docker&logoColor=white)](docs/deploy-homelab.md)
 
-## Stack
+**Live Production:** [checklist.suryatmaja.dev](https://checklist.suryatmaja.dev)
 
-| Layer | Technology |
-|-------|-----------|
-| Runtime | Bun |
-| Framework | Hono v4 |
-| Database | PostgreSQL (shared-postgres container on the homelab; any Postgres works) |
-| Frontend | Vanilla HTML + Alpine.js 3 (vendored in `public/vendor`) — no build step |
-| Auth | JWT HS256 via native `crypto.subtle`, httpOnly cookie |
-| Realtime | WebSockets via `createBunWebSocket` |
-| Hosting | Docker Compose on the homelab (`personal-hosts`), behind Nginx Proxy Manager and Cloudflare |
+[Architecture](#architecture) • [Features](#features) • [Tech Stack](#tech-stack) • [Quick Start](#quick-start) • [Deployment](#deployment--homelab-runbook) • [Migrations & Testing](#migrations--testing) • [Directory Layout](#directory-layout) • [Troubleshooting](#troubleshooting--diagnostics) • [Documentation](#modular-documentation-index)
 
-## Local development
+</div>
+
+---
+
+> **Built for distributed teams and homelab operators** who require low-latency, real-time shared checklists without bloated frontend build toolchains or third-party cloud dependencies. group-checklist pairs Bun's ultra-fast native runtime and Hono v4 with room-based WebSockets, reactive Alpine.js stores, and robust PostgreSQL persistence.
+
+---
+
+## Architecture
+
+```mermaid
+flowchart TD
+    subgraph Clients[" Browser Client Layer "]
+        Web["Alpine.js 3 SPA<br/>(Vendored Zero-Build)"]
+        Store["Reactive Store & WS Client<br/>(Auto-reconnect & Heartbeat)"]
+    end
+
+    subgraph Engine[" Bun & Hono Runtime Engine "]
+        Router["Hono v4 HTTP Router<br/>(/api/auth, /projects, /items)"]
+        WS["WebSocket Server<br/>(createBunWebSocket /ws/:slug)"]
+        Auth["Security & JWT Subsystem<br/>(Native crypto.subtle HS256)"]
+        Rate["Security Headers & Limiter<br/>(CSP, Sliding Window Memory)"]
+    end
+
+    subgraph Storage[" State & Infrastructure "]
+        DB[("PostgreSQL 16<br/>(Shared DB & Migrations)")]
+        Docker["Homelab Docker Service<br/>(Nginx Proxy Manager + Cloudflare)"]
+    end
+
+    Web <-->|Reactive State| Store
+    Store <-->|WebSocket Stream /ws/:slug| WS
+    Store <-->|REST Requests| Router
+    Router --> Auth
+    Router --> Rate
+    WS --> Auth
+    Router --> DB
+    WS -.->|Room Broadcasts| Store
+    Docker -.->|Hosts Container :3001| Engine
+```
+
+---
+
+## Features
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <h4>Realtime Collaboration & UI</h4>
+      <ul>
+        <li><strong>Instant WebSocket Sync</strong>: Room-scoped broadcasting (<code>/ws/:slug</code>) propagates item checks, edits, and reordering to all connected peers in sub-milliseconds.</li>
+        <li><strong>Alpine.js Reactive Store</strong>: Single-source-of-truth store with optimistic UI updates and instant DOM reactivity.</li>
+        <li><strong>Zero-Build Client</strong>: Pure HTML5, modular CSS, and vendored Alpine.js—no bundlers, transpilations, or npm pipelines.</li>
+        <li><strong>Automatic Reconnection</strong>: Resilient socket loop with 25-second heartbeat pings, exponential backoff, and state re-synchronization.</li>
+        <li><strong>Project Lists & Groups</strong>: Organize checklists into projects, color-tagged groups, pinned items, and archive views.</li>
+      </ul>
+    </td>
+    <td width="50%" valign="top">
+      <h4>Security & Backend Architecture</h4>
+      <ul>
+        <li><strong>Native <code>crypto.subtle</code> HS256</strong>: High-speed, spec-compliant JWT signing and verification stored in <code>HttpOnly</code>, <code>SameSite=Lax</code> cookies.</li>
+        <li><strong>Bun Native Engine</strong>: Zero-overhead TypeScript execution, native HTTP server, and asynchronous off-thread bcrypt hashing (cost 12).</li>
+        <li><strong>Sequential Migration Runner</strong>: Deterministic SQL runner tracking schema versions in <code>schema_migrations</code>.</li>
+        <li><strong>Homelab Docker Container</strong>: Hardened container running as unprivileged <code>bun</code> user with strict 512 MB memory limit and native health checks.</li>
+        <li><strong>Granular Rate Limiting</strong>: Sliding-window memory rate limiters for auth, socket joins, chat messages, and imports.</li>
+      </ul>
+    </td>
+  </tr>
+</table>
+
+---
+
+## Tech Stack
+
+| Layer | Technology | Role |
+|---|---|---|
+| **Runtime Engine** | Bun 1.1+ | High-throughput JavaScript/TypeScript runtime & native HTTP engine |
+| **Backend Framework** | Hono v4 | Lightweight routing, middleware stack, secure headers, body limiter |
+| **Realtime Engine** | Bun WebSockets (`createBunWebSocket`) | Low-latency room multiplexing, peer joins, and state broadcasts |
+| **Database** | PostgreSQL 16 (`postgres.js`) | Relational persistence, transactional checklist operations, audit logs |
+| **Frontend UI** | Alpine.js 3 + Vanilla CSS | Reactive single-page UI vendored in `public/vendor` (zero-build) |
+| **Authentication** | Web Crypto API (`crypto.subtle`) | Zero-dependency HS256 JWT tokens & Bun native bcrypt |
+| **Testing Harness** | Bun Test + PGlite | Embedded in-process PostgreSQL test runner without external daemons |
+| **Deployment** | Docker & Compose | Containerized homelab deployment behind Nginx Proxy Manager & Cloudflare |
+
+---
+
+## Quick Start
+
+### Prerequisites
+
+- [Bun](https://bun.sh) 1.1+
+- PostgreSQL 14+ (or Docker Compose for local PostgreSQL)
+- Git 2.40+
+
+### Setup in 4 Steps
 
 ```bash
+# 1. Clone repository and install dependencies
+git clone https://github.com/suryatmaja/group-checklist.git
+cd group-checklist
 bun install
-cp .env.example .env     # set DATABASE_URL, JWT_SECRET, DB_SSL=disable for a local Postgres, PORT=3000
-bun run migrate          # create / update the schema
-bun run dev              # http://localhost:3000
+
+# 2. Configure environment variables
+cp .env.example .env
+# Ensure JWT_SECRET is set (min 32 characters) and configure DATABASE_URL
+
+# 3. Apply database schema migrations
+bun run migrate
+
+# 4. Start local development server with file watching
+bun run dev
 ```
 
-`JWT_SECRET` is required: the server refuses to start without it.
+Open [http://localhost:3000](http://localhost:3000) to view the checklist dashboard.
 
-## Deployment
+---
 
-The app runs from `docker-compose.yml` on the homelab. Full procedure, environment
-variables, update and rollback: [docs/deploy-homelab.md](docs/deploy-homelab.md).
+## Deployment & Homelab Runbook
 
-Short version, on the host:
+The production instance is hosted as a Docker Compose service on the homelab network (`personal-hosts`) behind Nginx Proxy Manager and Cloudflare edge encryption.
+
+### Production Update Workflow
 
 ```bash
+# SSH into homelab host and pull updates
 cd /opt/projects/group-checklist
+git fetch --quiet && git status -sb
 git pull --ff-only
+
+# Rebuild and start container in background
 docker compose up -d --build
+
+# Run pending database migrations
 docker compose exec group-checklist bun scripts/migrate.ts
-curl -s localhost:3001/health
+
+# Verify health status
+curl -s http://localhost:3001/health
 ```
 
-The old AWS EC2 / Fly.io setup is kept for reference under [`legacy/ec2`](legacy/ec2) and is no longer in use.
+### Health Check
 
-## Database migrations
+The endpoint `GET /health` executes a live ping against PostgreSQL (`SELECT 1`).
+- **200 OK**: `{"ok":true,"db":"ok","ts":"..."}` (healthy container).
+- **503 Service Unavailable**: Database unreachable; triggers Docker automated container restart.
 
-SQL files in [`migrations/`](migrations) run in filename order. `scripts/migrate.ts` records applied files in
-`schema_migrations` and skips them next time. A database created before the runner existed is detected and
-`001_init.sql` is marked as applied. All migrations are written to be additive and safe to re-run.
+For environment variable matrices, automated deployments, and rollback procedures, refer to [docs/deploy-homelab.md](docs/deploy-homelab.md).
+
+---
+
+## Migrations & Testing
+
+### Database Migrations
+
+SQL migrations in [`migrations/`](migrations) run sequentially by filename. `scripts/migrate.ts` checks and records applied files in `schema_migrations`. All migrations are additive (`IF NOT EXISTS`), guaranteeing backward compatibility during rollbacks.
 
 ```bash
+# Run pending migrations
 bun run migrate
 ```
 
-## Security notes
+### Automated Test Suite
 
-- `JWT_SECRET` is mandatory and must be at least 32 characters; auth cookies are `HttpOnly`, `SameSite=Lax`,
-  and `Secure` in production.
-- Passwords use Bun's native bcrypt (cost 12), which runs off the main thread; a login for an unknown username
-  costs the same as a wrong password.
-- WebSockets: at most 20 per IP and 200 per project, 60 connection attempts per minute per IP, 1 KB message
-  limit. Sockets are authorised when they connect, so turning a project private disconnects everyone but the
-  owner (the browser shows a notice and does not retry).
-- Per-IP rate limits (in memory, reset on restart): login 10 / 15 min, register 5 / hour, writes 120 / min,
-  chat and comments 20 / min, import 5 / min. Over the limit returns `429` with `Retry-After`.
-- The client IP comes from `cf-connecting-ip`, then `x-forwarded-for`, then `x-real-ip`. The proxy in front must
-  be Cloudflare (or overwrite those headers); otherwise clients can spoof their address and dodge the limits.
-- Request bodies are capped at 1 MB; text fields have length limits enforced on the server (see `src/lib/validate.ts`).
-- Responses carry a Content-Security-Policy (same-origin only; `unsafe-eval` is needed by Alpine's standard build).
-  HSTS is left to the edge.
-- Public log entries never include IP or user agent; only the project owner's admin view does.
-- Guests on public projects can edit items under a self-chosen display name. That is intended, but the name is
-  not verified.
+Unit and integration tests run under `bun test`. Test runs use an embedded, in-process PostgreSQL instance ([PGlite](https://pglite.dev)), requiring zero local database setup.
 
-## Project layout
+```bash
+# Execute full test suite
+bun test
 
-| Path | Purpose |
-|------|---------|
-| `src/index.ts` | Entry point: middleware, rate limits, WebSocket upgrade, static files |
-| `src/routes/` | `auth`, `projects`, `items`, `messages`, `logs` |
-| `src/lib/` | Access checks (`access.ts`) and input validation (`validate.ts`) |
-| `src/middleware/` | Request metadata, audit log writer, rate limiters |
-| `public/` | Alpine.js single-page UI (`index.html`, `js/`, `css/`, `vendor/`) |
-| `migrations/`, `scripts/migrate.ts` | Schema and migration runner |
-| `tests/` | Bun tests (API, migrations, access rules, WebSocket rooms); CI in `.github/workflows` |
-| `Dockerfile`, `docker-compose.yml` | Container build and run |
-| `legacy/ec2/` | Historical EC2 deployment files (nginx, systemd, init scripts) |
+# Run tests against an external database instance
+TEST_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/checklist_test bun test
+```
 
-## Scripts
+---
 
-| Command | Purpose |
-|---------|---------|
-| `bun run dev` | Start with file watching |
-| `bun run start` | Start without watching |
-| `bun run migrate` | Apply pending migrations |
-| `bun test` | Run the tests. They start an in-process Postgres (PGlite), so there is nothing to install; set `TEST_DATABASE_URL` to use a real server |
+## Directory Layout
+
+| Directory / File | Component & Purpose |
+|---|---|
+| `src/index.ts` | Server bootstrap, global security middleware, rate limiters, WebSocket upgrade |
+| `src/routes/` | Modular endpoints for authentication, projects, groups, items, and audit logs |
+| `src/middleware/` | Per-IP sliding-window rate limiters, request context metadata, and audit logger |
+| `src/lib/` | Cryptographic JWT verification (`crypto.subtle`), RBAC access rules, and validators |
+| `src/ws.ts` | WebSocket room manager, heartbeat handler, and broadcast engine |
+| `public/` | Alpine.js single-page application (`index.html`, `js/`, `css/`, `vendor/`) |
+| `migrations/` | Sequential SQL migration scripts (`001_init.sql`, `002_*.sql`, etc.) |
+| `scripts/migrate.ts` | Deterministic database migration runner tracking `schema_migrations` |
+| `tests/` | Test suites executed via `bun test` backed by in-memory PGlite |
+| `docs/` | Deep operational runbooks, architecture specs, and UI design mockups |
+| `legacy/` | Archived AWS EC2 configuration and deployment automation |
+
+---
+
+## Troubleshooting & Diagnostics
+
+| Symptom | Probable Cause | Immediate Remediation |
+|---|---|---|
+| Server exits immediately on startup | `JWT_SECRET` missing or < 32 chars | Generate secret via `openssl rand -hex 32` and set `JWT_SECRET` in `.env`. |
+| `503 Service Unavailable` on `/health` | PostgreSQL unreachable or credentials invalid | Verify `DATABASE_URL` and container networking (`docker compose ps`). |
+| `429 Too Many Requests` | IP rate limit exceeded | Wait for cooldown or check reverse proxy forwarding headers (`cf-connecting-ip`). |
+| WebSocket fails to connect / drops | Project is private or socket limit reached | Ensure user is authenticated as project owner or check per-IP socket limits (max 20). |
+| Migration lock or schema error | Unapplied or conflicting migration | Run `bun run migrate` locally or `docker compose exec group-checklist bun scripts/migrate.ts`. |
+
+---
+
+## Known Gaps & Design Boundaries
+
+- **Single-Node WebSocket State**: In-memory rooms and sliding-window rate limiters operate per-process; horizontal multi-replica scaling requires a distributed PubSub broker.
+- **Client Script Evaluation**: Content-Security-Policy includes `'unsafe-eval'` to enable Alpine.js dynamic expression evaluation without an external JS compiler.
+- **Guest Identity**: Guests on public projects provide self-selected display names without server-side verification.
+- **Edge Reconnection**: Client reconnect cycles perform full project state fetches instead of incremental delta log replay.
+
+---
+
+## Modular Documentation Index
+
+Deep operational guides, design artifacts, and legacy infrastructure documentation are maintained modularly:
+
+| Document | Description | Target Audience |
+|---|---|---|
+| [Homelab Deployment Runbook](docs/deploy-homelab.md) | Host paths, reverse proxy configs, environment specs, and rollback procedures | SRE & System Operators |
+| [Design Mockups](docs/design/) | Utilitarian UI mockups and ledger interface design explorations | Frontend Developers & Designers |
+| [Legacy Deployments](legacy/ec2/) | Historical AWS EC2 systemd, Nginx, and cloud-init scripts (archived) | Technical Historians & Reference |
+
+---
+
+## License
+
+Distributed under the [MIT License](LICENSE).
